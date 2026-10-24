@@ -69,6 +69,8 @@ body{background:var(--pg-bg);color:var(--pg-fg);font-family:'Google Sans',system
 
 .b-glass.tilt{background:var(--glass-strong);border:1px solid var(--line);padding:14px 18px}
 .center .b-banner{text-align:left}
+/* A card or banner is its own group on a centred screen: 32px clear of the text. */
+.center>.b-banner,.center>.b-glass{margin-top:16px;margin-bottom:16px}
 
 /* Spacing: related things sit closer than unrelated things.
    8px title to its supporting text, 12px label to its control, 32px between groups. */
@@ -214,9 +216,9 @@ button.b-reset,.b-btn,.b-ibtn,.b-chip{font-family:var(--font-body);cursor:pointe
 .b-toast{display:inline-flex;align-items:center;justify-content:center;gap:16px;min-height:52px;padding:0 20px;max-width:100%;border-radius:var(--radius-pill);background:var(--toast);color:var(--on-toast);box-shadow:var(--shadow-float);font:600 15px/20px var(--font-body)}
 .b-toast button{min-height:44px;padding:0;border:0;background:transparent;color:var(--on-toast);font:700 15px/20px var(--font-body);text-decoration:underline;cursor:pointer;white-space:nowrap}
 /* Banner */
-.b-banner{display:flex;gap:12px;padding:14px 16px;border-radius:var(--radius-md);background:var(--glass-strong);border:1.5px solid var(--line-strong);color:var(--ink);font-family:var(--font-body)}
+.b-banner{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:var(--radius-md);background:var(--glass-strong);border:1.5px solid var(--line-strong);color:var(--ink);font-family:var(--font-body)}
 .b-banner--warning{border-color:var(--warning)}.b-banner--danger{border-color:var(--danger)}.b-banner--success{border-color:var(--success)}
-.b-banner__i{flex:none;margin-top:2px}
+.b-banner__i{flex:none;height:22px;display:flex;align-items:center;justify-content:center}
 .b-banner--warning .b-banner__i{color:var(--warning)}.b-banner--danger .b-banner__i{color:var(--danger)}.b-banner--success .b-banner__i{color:var(--success)}
 .b-banner__t{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
 .b-banner__t b{display:block;font:700 15px/22px var(--font-body)}
