@@ -1,0 +1,10 @@
+{
+  "appId": "com.bytesandpixels.better",
+  "appName": "Better",
+  "webDir": "www",
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "SystemBars": { "insetsHandling": "css" },
+    "LocalNotifications": { "smallIcon": "ic_stat_better", "iconColor": "#111111" }
+  }
+}
