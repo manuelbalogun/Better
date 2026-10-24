@@ -222,7 +222,7 @@ function MedsTab(){const c=useC();const s=c.s;const list=s.meds.filter(m=>!m.del
 const grp={active:[],paused:[],finished:[]};list.forEach(m=>grp[medState(m)].push(m));
 const lowN=grp.active.filter(m=>{const x=stockInfo(m);return x&&(x.low||x.out);});
 const row=(m)=>{const x=stockInfo(m),ms=medState(m);return html`<${ListRow} key=${m.id} icon="pill" anchor=${m.anchors[0]} title=${m.name+' '+m.strength} sub=${anchorsText(m)+(x&&ms==='active'?' · '+(m.pills<=0?'Out of pills':m.pills+' left'):'')} trailing=${ms==='paused'?html`<${Badge} icon="snooze">Paused<//>`:ms==='finished'?html`<${Badge}>Finished<//>`:x&&x.out?html`<${Badge} tone="danger" icon="alert">Out<//>`:x&&x.low?html`<${Badge} tone="warning" icon="alert">Low<//>`:null} onClick=${()=>c.go('med',{id:m.id})}/>`;};
-return html`<div class="screen"><${TopBar} variant="root" title="Meds"/><${Page}><div class="note" style=${{margin:'4px 4px 12px'}}>${grp.active.length} active · ${list.length} total</div>
+return html`<div class="screen"><${TopBar} variant="root" title="Meds"/><${Page}><div class="note" style=${{margin:'0 0 12px'}}>${grp.active.length} active · ${list.length} total</div>
 ${lowN.length>0&&html`<div style=${{marginBottom:12}}><${Banner} tone=${lowN.some(m=>m.pills<=0)?'danger':'warning'} icon="box" title=${lowN.length===1?lowN[0].name+' is running low':lowN.length+' medications are running low'} body="Refill soon so you never miss a dose." action="Refill" onAction=${()=>c.sheet('refill',{id:lowN[0].id})}/></div>`}
 ${!list.length?html`<${EmptyState} icon="pill" title="No medications yet" body="Add your first one and Better will remind you at the right time of day." action="Add medication" onAction=${()=>c.go('add')}/>`:html`<div class="b-stack" style=${{gap:16}}>
 ${grp.active.length>0&&html`<div class="b-stack"><${Label}>Active<//><${GlassCard} pad=${0}>${grp.active.map(row)}<//></div>`}
@@ -274,9 +274,9 @@ function rangeStats(s,fromOff,toOff,medId){let t=0,n=0;const lo=Math.min(fromOff
 function History(){const c=useC();const s=c.s,ui=c.ui;const range=ui.hr||'week';const sel=ui.hsel;
 const hasData=Object.keys(s.doses).length>0;
 let bars=[];
-if(range==='week')bars=[6,5,4,3,2,1,0].map((i,j)=>{const k=dk(addDays(TODAY,-i));const r=rangeStats(s,i,i);return {label:DOWL[fromKey(k).getDay()][0],value:r.total?r.taken/r.total:0,k,selected:sel===j,r};});
-else if(range==='month')bars=[4,3,2,1,0].map((w,j)=>{const r=rangeStats(s,w*7+6,w*7);const d=addDays(TODAY,-(w*7+6));return {label:MON[d.getMonth()]+' '+d.getDate(),value:r.total?r.taken/r.total:0,r,selected:sel===j};});
-else bars=(range==='6m'?[5,4,3,2,1,0]:[2,1,0]).map((m,j)=>{const r=rangeStats(s,m*30+29,m*30);const d=addDays(TODAY,-(m*30));return {label:MON[d.getMonth()],value:r.total?r.taken/r.total:0,r,selected:sel===j};});
+if(range==='week')bars=[6,5,4,3,2,1,0].map((i,j)=>{const k=dk(addDays(TODAY,-i));const r=rangeStats(s,i,i);return {label:DOWL[fromKey(k).getDay()][0],value:r.total?r.taken/r.total:0,empty:!r.total,k,selected:sel===j,r};});
+else if(range==='month')bars=[4,3,2,1,0].map((w,j)=>{const r=rangeStats(s,w*7+6,w*7);const d=addDays(TODAY,-(w*7+6));return {label:MON[d.getMonth()]+' '+d.getDate(),value:r.total?r.taken/r.total:0,empty:!r.total,r,selected:sel===j};});
+else bars=(range==='6m'?[5,4,3,2,1,0]:[2,1,0]).map((m,j)=>{const r=rangeStats(s,m*30+29,m*30);const d=addDays(TODAY,-(m*30));return {label:MON[d.getMonth()],value:r.total?r.taken/r.total:0,empty:!r.total,r,selected:sel===j};});
 const span=range==='week'?[0,6]:range==='month'?[0,34]:range==='3m'?[0,89]:[0,179];const tot=rangeStats(s,span[0],span[1]);
 const meds=s.meds.filter(m=>!m.deleted).map(m=>({m,r:rangeStats(s,span[0],span[1],m.id)})).filter(x=>x.r.total>0);
 const picked=sel!=null?bars[sel]:null;
@@ -310,7 +310,7 @@ ${!s.lastExportAt&&s.meds.length>0&&html`<${Banner} title="Saved only on this ph
 function MyDay(){const c=useC();const s=c.s;
 const edit=(a)=>{const i=AIDX[a.key];const prev=i>0?s.anchorTimes[ANCHORS[i-1].key]:-1,next=i<4?s.anchorTimes[ANCHORS[i+1].key]:1440;
 c.sheet('time',{title:a.label+' time',value:s.anchorTimes[a.key],note:'Reminders for '+a.label.toLowerCase()+' follow this time.',validate:(v)=>v<=prev?a.label+' must be after '+ALABEL[ANCHORS[i-1].key]:v>=next?a.label+' must be before '+ALABEL[ANCHORS[i+1].key]:'',onSave:(v)=>c.act.setAnchor(a.key,v)});};
-return html`<div class="screen"><${Hdr} title="My day"/><${Page}><div class="note" style=${{margin:"4px 4px 12px"}}>Tap a time to change it.</div><${GlassCard} pad=${0}>${ANCHORS.map(a=>html`<div key=${a.key} class="arow" data-tone=${a.key}><span class="arow__ic"><${Icon} name=${B.ANCHOR_ICON[a.key]} size=${22}/></span><b>${a.label}</b><${Chip} variant="time" onClick=${()=>edit(a)}>${fmt(s.anchorTimes[a.key])}<//></div>`)}<//>
+return html`<div class="screen"><${Hdr} title="My day"/><${Page}><div class="note" style=${{margin:"0 0 12px"}}>Tap a time to change it.</div><${GlassCard} pad=${0}>${ANCHORS.map(a=>html`<div key=${a.key} class="arow" data-tone=${a.key}><span class="arow__ic"><${Icon} name=${B.ANCHOR_ICON[a.key]} size=${22}/></span><b>${a.label}</b><${Chip} variant="time" onClick=${()=>edit(a)}>${fmt(s.anchorTimes[a.key])}<//></div>`)}<//>
 <div class="note" style=${{marginTop:12}}>Changes apply from the next reminder. Doses already taken stay as recorded.</div><//></div>`;}
 
 function Notifs(){const c=useC();const s=c.s,st=s.settings;const set=(k,v)=>c.act.setSetting(k,v);
@@ -324,7 +324,7 @@ const CHECKS=[{key:'notif',icon:'bell',title:'Notifications',good:'Allowed',bad:
 function Reliability({list}){const c=useC();const s=c.s;const items=list?CHECKS.filter(x=>list.includes(x.key)):CHECKS;const bad=items.filter(x=>!s.perms[x.key]).length;
 return html`<div class="b-stack"><${Banner} tone=${bad?'warning':'success'} title=${bad?bad+' thing'+(bad>1?'s':'')+' to fix':'All set'} body=${bad?'Fix these so reminders arrive on time.':'Reminders will arrive on time.'}/>
 <${GlassCard} pad=${0}>${items.map(x=>html`<div key=${x.key} class="chk"><span class="chk__ic"><${Icon} name=${x.icon} size=${22}/></span><div class="chk__t"><b>${x.title}</b><span>${s.perms[x.key]?x.good:x.bad}${x.note&&!s.perms[x.key]?' · '+x.note:''}</span></div>${s.perms[x.key]?html`<${Badge} tone="success" icon="check">Good<//>`:html`<${Button} variant="secondary" onClick=${()=>c.act.fix(x.key)}>Fix<//>`}</div>`)}<//></div>`;}
-function ReliabilityScreen(){return html`<div class="screen"><${Hdr} title="Reminder reliability"/><${Page}><div class="note" style=${{margin:"4px 4px 12px"}}>Checked every time you open this.</div><${Reliability}/><//></div>`;}
+function ReliabilityScreen(){return html`<div class="screen"><${Hdr} title="Reminder reliability"/><${Page}><div class="note" style=${{margin:"0 0 12px"}}>Checked every time you open this.</div><${Reliability}/><//></div>`;}
 
 const SYS={notif:{t:'Better · Notifications',l:'Allow notifications'},exact:{t:'Alarms & reminders',l:'Allow setting alarms and reminders'},battery:{t:'Better · Battery',l:'Unrestricted'},autostart:{t:'Autostart',l:'Allow Better to start itself'},dnd:{t:'Do Not Disturb',l:'Let Better break through'}};
 function SysSheet({p}){const c=useC();const [on,setOn]=useState(!!c.s.perms[p.key]);const x=SYS[p.key];
@@ -361,7 +361,7 @@ return html`<${GlassCard} pad=${0}>${ANCHORS.map(a=>html`<div key=${a.key} class
 const OBBACK={A3:'A2',A4:'A3',A5:'A4',A6:'A5',A7:'A6'};
 function Onboarding(){const c=useC();const s=c.s;const ob=c.nav.ob;const [nm,setNm]=useState(s.name);
 useEffect(()=>{if(ob!=='A1')return;const t=setTimeout(()=>c.setOb('A2'),1800);return ()=>clearTimeout(t);},[ob]);
-if(ob==='A1')return html`<div class="screen splash" onClick=${()=>c.setOb('A2')}><div class="logo"><${DoseCircle} taken=${2} total=${3} size=${104}/></div><h1 class="display">Better</h1><p>Reminders that follow your day, not the clock.</p></div>`;
+if(ob==='A1')return html`<div class="screen splash" onClick=${()=>c.setOb('A2')}><div class="logo"><${DoseCircle} taken=${2} total=${3} size=${104} sweep/></div><h1 class="display">Better</h1><p>Reminders that follow your day, not the clock.</p></div>`;
 const back=OBBACK[ob];const step=['A3','A4','A5','A6','A7'].indexOf(ob);
 const head=back?html`<${TopBar} leading="back" onLeading=${()=>c.setOb(back)}><div class="dots">${[0,1,2,3,4].map(i=>html`<i key=${i} class=${i<=step?"on":""}/>`)}</div><//>`:null;
 let body,foot;
@@ -506,7 +506,7 @@ useEffect(()=>{ // system bar icons + background follow the theme
 },[theme]);
 return html`<${Ctx.Provider} value=${ctx}><div class="phone" data-theme=${theme}>
 <div class="body">${screen}</div>
-${showNav&&html`<div class="navwrap"><${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>go('add')} items=${[{key:'today',icon:'home',label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div>`}
+${showNav&&html`<div class="navwrap"><${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>go('add')} items=${[{key:'today',icon:'home',text:String(TODAY.getDate()).padStart(2,'0'),label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div>`}
 ${toastS&&html`<div class="toastwrap"><${Toast} message=${toastS.msg} action=${toastS.action} onAction=${()=>{toastS.onAction&&toastS.onAction();setToastS(null);}}/></div>`}
 ${sh}
 </div><//>`;}

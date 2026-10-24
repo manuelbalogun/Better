@@ -71,12 +71,17 @@
     } else {
       kids.push(h('circle', { key: 'o', cx: c, cy: c, r: r - 1, fill: 'var(--track)' }));
       if (taken >= total) {
-        kids.push(h('circle', { key: 'f', cx: c, cy: c, r: r - 1, fill: 'var(--accent)' }));
-        kids.push(h('path', { key: 'k', d: 'M' + (s * .34) + ' ' + (s * .52) + 'l' + (s * .11) + ' ' + (s * .11) + 'l' + (s * .2) + ' ' + (-s * .23), fill: 'none', stroke: 'var(--on-accent)', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' }));
+        kids.push(h('circle', { key: 'f', cx: c, cy: c, r: r - 1, fill: 'var(--accent-solid)' }));
+        kids.push(h('path', { key: 'k', d: 'M' + (s * .34) + ' ' + (s * .52) + 'l' + (s * .11) + ' ' + (s * .11) + 'l' + (s * .2) + ' ' + (-s * .23), fill: 'none', stroke: 'var(--on-accent-solid)', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' }));
+      } else if (taken > 0 && p.sweep) {
+        // One circle whose stroke is as thick as its radius draws a filled wedge, which
+        // lets the dash sweep from nothing to its value.
+        var rs = (r - 1) / 2, C = 2 * Math.PI * rs, f = C * (taken / total);
+        kids.push(h('circle', { key: 'p', className: 'b-circ__sweep', cx: c, cy: c, r: rs, fill: 'none', stroke: 'var(--accent-solid)', strokeWidth: r - 1, strokeDasharray: f + ' ' + C, transform: 'rotate(-90 ' + c + ' ' + c + ')', style: { '--c': C, '--f': f } }));
       } else if (taken > 0) {
         var a = (taken / total) * Math.PI * 2, rr = r - 1;
         var x = c + rr * Math.sin(a), y = c - rr * Math.cos(a);
-        kids.push(h('path', { key: 'p', d: 'M' + c + ' ' + c + 'L' + c + ' ' + (c - rr) + 'A' + rr + ' ' + rr + ' 0 ' + (a > Math.PI ? 1 : 0) + ' 1 ' + x + ' ' + y + 'Z', fill: 'var(--accent)' }));
+        kids.push(h('path', { key: 'p', d: 'M' + c + ' ' + c + 'L' + c + ' ' + (c - rr) + 'A' + rr + ' ' + rr + ' 0 ' + (a > Math.PI ? 1 : 0) + ' 1 ' + x + ' ' + y + 'Z', fill: 'var(--accent-solid)' }));
       }
     }
     if (p.today) kids.push(h('circle', { key: 't', cx: c, cy: c, r: r + 2, fill: 'none', stroke: 'var(--focus)', strokeWidth: 0 }));
@@ -125,15 +130,17 @@
     var pill = h('nav', { className: 'b-nav', 'aria-label': 'Main' },
       p.items.map(function (it) {
         var on = p.value === it.key;
-        return h('button', { type: 'button', key: it.key, 'aria-current': on ? 'page' : undefined, 'aria-label': it.label, onClick: function () { p.onChange && p.onChange(it.key); } }, h(Icon, { name: it.icon }), on ? it.label : null);
+        var glyph = it.text ? h('span', { className: 'b-nav__num' }, it.text) : h(Icon, { name: it.icon });
+        return h('button', { type: 'button', key: it.key, 'aria-current': on ? 'page' : undefined, 'aria-label': it.label, onClick: function () { p.onChange && p.onChange(it.key); } }, glyph, on ? it.label : null);
       }));
     return p.onAdd ? h('div', { className: 'b-navrow' }, pill,
       h('button', { type: 'button', className: 'b-nav__add', 'aria-label': 'Add medication', onClick: p.onAdd }, h(Icon, { name: 'plus', weight: 2.8 }))) : pill;
   }
   function BarChart(p) {
     return h('div', { className: 'b-bars', style: { '--h': (p.height || 140) + 'px' }, role: 'group', 'aria-label': p.label || 'Adherence by day' }, p.data.map(function (d, i) {
-      return h('button', { type: 'button', key: i, className: 'b-bar', 'aria-pressed': d.selected ? 'true' : 'false', 'aria-label': d.label + ' ' + Math.round(d.value * 100) + ' percent', onClick: function () { p.onSelect && p.onSelect(i); } },
-        h('i', { style: { height: Math.max(4, d.value * 100) + '%' } }), h('span', null, d.label));
+      return h('button', { type: 'button', key: i, className: 'b-bar', 'aria-pressed': d.selected ? 'true' : 'false', 'aria-label': d.label + (d.empty ? ' no doses scheduled' : ' ' + Math.round(d.value * 100) + ' percent'), onClick: function () { p.onSelect && p.onSelect(i); } },
+        h('span', { className: cx('b-bar__tr', d.empty && 'b-bar__tr--empty') }, d.empty ? null : h('i', { style: { height: Math.max(4, d.value * 100) + '%' } })),
+        h('span', { className: 'b-bar__l' }, d.label));
     }));
   }
   function StockRing(p) {
@@ -159,7 +166,7 @@
   function Banner(p) {
     var t = p.tone || 'info';
     return h('div', { className: cx('b-banner', 'b-banner--' + t), role: t === 'danger' ? 'alert' : 'status' },
-      h('div', { className: 'b-banner__i' }, h(Icon, { name: p.icon || (t === 'success' ? 'check' : t === 'info' ? 'info' : 'alert') })),
+      h('div', { className: 'b-banner__i' }, h(Icon, { name: p.icon || (t === 'success' ? 'check' : t === 'info' ? 'info' : 'alert'), size: 19 })),
       h('div', { className: 'b-banner__t' }, h('b', null, p.title), p.body ? h('span', null, p.body) : null,
         p.action ? h(Button, { variant: 'secondary', onClick: p.onAction }, p.action) : null));
   }
