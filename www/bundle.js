@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"Better","components":[{"name":"Icon"},{"name":"Button"},{"name":"IconButton"},{"name":"Chip"},{"name":"TextField"},{"name":"Stepper"},{"name":"Switch"},{"name":"Badge"},{"name":"GlassCard"},{"name":"DoseCircle"},{"name":"DoseRow"},{"name":"NextCard"},{"name":"DateStrip"},{"name":"Tabs"},{"name":"NavPill"},{"name":"BarChart"},{"name":"StockRing"},{"name":"Sheet"},{"name":"Toast"},{"name":"Banner"},{"name":"ListRow"},{"name":"EmptyState"},{"name":"TopBar"}]} */
+/* @ds-bundle: {"format":4,"namespace":"Better","components":[{"name":"Icon"},{"name":"Button"},{"name":"IconButton"},{"name":"Chip"},{"name":"TextField"},{"name":"Stepper"},{"name":"Switch"},{"name":"Badge"},{"name":"GlassCard"},{"name":"DoseCircle"},{"name":"DoseRow"},{"name":"NextCard"},{"name":"DateStrip"},{"name":"Tabs"},{"name":"NavPill"},{"name":"BarChart"},{"name":"StockRing"},{"name":"Sheet"},{"name":"Toast"},{"name":"Banner"},{"name":"ListRow"},{"name":"EmptyState"}]} */
 (function () {
   var React = window.React;
   var h = React.createElement;
@@ -17,8 +17,8 @@
 
   function Button(p) {
     var v = p.variant || 'primary';
-    return h('button', { type: 'button', className: cx('b-btn', 'b-btn--' + v, p.size === 'lg' && 'b-btn--lg', p.full && 'b-btn--full'), disabled: p.disabled || p.loading, onClick: p.onClick, 'aria-busy': p.loading ? 'true' : undefined },
-      p.loading ? h('span', { className: 'b-spin' }) : null, p.children);
+    return h('button', { type: 'button', className: cx('b-btn', 'b-btn--' + v, p.size && 'b-btn--' + p.size, p.full && 'b-btn--full'), disabled: p.disabled || p.loading, onClick: p.onClick, 'aria-busy': p.loading ? 'true' : undefined },
+      p.loading ? h('span', { className: 'b-spin' }) : (p.icon ? h(Icon, { name: p.icon, size: 20 }) : null), p.children);
   }
   function IconButton(p) {
     return h('button', { type: 'button', className: cx('b-ibtn', 'b-ibtn--' + (p.variant || 'glass')), 'aria-label': p.label, disabled: p.disabled, onClick: p.onClick }, h(Icon, { name: p.icon }));
@@ -35,7 +35,7 @@
     return h('div', { className: cx('b-field', p.error && 'b-field--error', p.disabled && 'b-field--disabled') },
       p.label ? h('label', { htmlFor: id }, p.label) : null,
       h('div', { className: 'b-input' }, p.icon ? h(Icon, { name: p.icon, size: 20 }) : null,
-        h('input', { id: id, 'aria-label': p.label ? undefined : p.ariaLabel, value: val, placeholder: p.placeholder, disabled: p.disabled, 'aria-invalid': p.error ? 'true' : undefined, onChange: function (e) { setLocal(e.target.value); if (p.onChange) p.onChange(e.target.value); } }),
+        h('input', { id: id, value: val, placeholder: p.placeholder, disabled: p.disabled, 'aria-invalid': p.error ? 'true' : undefined, onChange: function (e) { setLocal(e.target.value); if (p.onChange) p.onChange(e.target.value); } }),
         p.suffix || null),
       (p.error || p.hint) ? h('div', { className: 'b-hint', role: p.error ? 'alert' : undefined }, p.error || p.hint) : null,
       sug.length ? h('div', { className: 'b-sugg' }, sug.map(function (s, i) {
@@ -87,9 +87,9 @@
     var st = p.state || 'due';
     var mark = st === 'taken' ? h(Icon, { name: 'check', weight: 2.5 }) : st === 'missed' ? h(Icon, { name: 'missed' }) : st === 'skipped' ? h(Icon, { name: 'skip' }) : h(Icon, { name: ANCHOR_ICON[p.anchor] || 'pill' });
     var right = null;
-    if (st === 'due') right = h(Button, { variant: 'primary', onClick: p.onTake }, 'Take');
-    else if (st === 'taken') right = h(Button, { variant: 'ghost', onClick: p.onUndo }, 'Undo');
-    else if (st === 'missed') right = h(Button, { variant: 'secondary', onClick: p.onTake }, 'Took it');
+    if (st === 'due') right = h(Button, { size: 'sm', variant: 'primary', onClick: p.onTake }, 'Take');
+    else if (st === 'taken') right = h(Button, { size: 'sm', variant: 'ghost', onClick: p.onUndo }, 'Undo');
+    else if (st === 'missed') right = h(Button, { size: 'sm', variant: 'secondary', onClick: p.onTake }, 'Took it');
     else if (st === 'snoozed') right = h(Badge, { tone: 'warning', icon: 'snooze' }, p.snoozeLabel || 'Snoozed');
     else if (st === 'skipped') right = h(Badge, null, 'Skipped');
     else right = h('span', { className: 'b-dose__sub' }, p.time);
@@ -107,7 +107,7 @@
       h('div', { className: 'b-next__meds' }, p.meds),
       h('div', { className: 'b-next__acts' },
         h(Button, { variant: 'primary', onClick: p.onTake }, p.takenCount ? 'Take the rest' : 'Take now'),
-        taken === 0 ? h(Button, { variant: 'secondary', onClick: p.onLate }, 'Running late') : h(Button, { variant: 'secondary', onClick: p.onSnooze }, 'Snooze 15 min')));
+        taken === 0 ? h(Button, { variant: 'secondary', icon: 'clock', onClick: p.onLate }, 'Running late') : h(Button, { variant: 'secondary', icon: 'snooze', onClick: p.onSnooze }, 'Snooze 15 min')));
   }
 
   function DateStrip(p) {
@@ -122,13 +122,12 @@
     }));
   }
   function NavPill(p) {
-    var pill = h('nav', { className: 'b-nav', 'aria-label': 'Main' },
+    return h('nav', { className: 'b-nav', 'aria-label': 'Main' },
       p.items.map(function (it) {
         var on = p.value === it.key;
         return h('button', { type: 'button', key: it.key, 'aria-current': on ? 'page' : undefined, 'aria-label': it.label, onClick: function () { p.onChange && p.onChange(it.key); } }, h(Icon, { name: it.icon }), on ? it.label : null);
-      }));
-    return p.onAdd ? h('div', { className: 'b-navrow' }, pill,
-      h('button', { type: 'button', className: 'b-nav__add', 'aria-label': 'Add medication', onClick: p.onAdd }, h(Icon, { name: 'plus', weight: 2.8 }))) : pill;
+      }),
+      p.onAdd ? h('button', { type: 'button', className: 'b-nav__add', 'aria-label': 'Add medication', onClick: p.onAdd }, h(Icon, { name: 'plus', weight: 2.8 })) : null);
   }
   function BarChart(p) {
     return h('div', { className: 'b-bars', style: { '--h': (p.height || 140) + 'px' }, role: 'group', 'aria-label': p.label || 'Adherence by day' }, p.data.map(function (d, i) {
@@ -161,7 +160,7 @@
     return h('div', { className: cx('b-banner', 'b-banner--' + t), role: t === 'danger' ? 'alert' : 'status' },
       h('div', { className: 'b-banner__i' }, h(Icon, { name: p.icon || (t === 'success' ? 'check' : t === 'info' ? 'info' : 'alert') })),
       h('div', { className: 'b-banner__t' }, h('b', null, p.title), p.body ? h('span', null, p.body) : null,
-        p.action ? h(Button, { variant: 'secondary', onClick: p.onAction }, p.action) : null));
+        p.action ? h(Button, { size: 'sm', variant: 'secondary', onClick: p.onAction }, p.action) : null));
   }
   function ListRow(p) {
     return h('button', { type: 'button', className: cx('b-list-row', p.tone === 'danger' && 'b-list-row--danger'), disabled: p.disabled, onClick: p.onClick },
@@ -174,26 +173,5 @@
       h('h3', null, p.title), p.body ? h('p', null, p.body) : null, p.action ? h(Button, { onClick: p.onAction }, p.action) : null);
   }
 
-  function TopBar(p) {
-    var acts = (p.actions || []).map(function (a, i) {
-      return h('button', { key: i, type: 'button', className: 'b-tb__act', 'aria-label': a.label, onClick: a.onClick }, h(Icon, { name: a.icon, size: 24 }), a.dot ? h('i', { className: 'b-tb__dot' }) : null);
-    });
-    var bar;
-    if (p.variant === 'root') {
-      bar = h('header', { className: 'b-tb b-tb--root' },
-        p.brand ? h('div', { className: 'b-tb__brand' }, h(DoseCircle, { taken: 2, total: 3, size: 28 }), h('span', null, p.title)) : h('h1', { className: 'b-tb__h1' }, p.title),
-        h('div', { className: 'b-tb__acts' }, acts));
-    } else {
-      var lead = p.leading ? h('button', { type: 'button', className: 'b-tb__act', 'aria-label': p.leading === 'close' ? 'Close' : 'Back', onClick: p.onLeading }, h(Icon, { name: p.leading === 'close' ? 'close' : 'chevron-left', size: 24 })) : null;
-      bar = h('header', { className: 'b-tb' },
-        h('div', { className: 'b-tb__side' }, lead),
-        h('div', { className: 'b-tb__mid' }, p.children || [h('b', { key: 't' }, p.title), p.subtitle ? h('span', { key: 's' }, p.subtitle) : null]),
-        h('div', { className: 'b-tb__side b-tb__side--end' }, acts));
-    }
-    var pr = p.progress;
-    return h('div', { className: 'b-tbw' }, bar,
-      pr ? h('div', { className: 'b-tb__prog', role: 'progressbar', 'aria-valuenow': pr.step, 'aria-valuemax': pr.total }, Array.apply(null, Array(pr.total)).map(function (_, i) { return h('i', { key: i, className: i < pr.step ? 'on' : '' }); })) : null);
-  }
-
-  window.Better = { Icon: Icon, Button: Button, IconButton: IconButton, Chip: Chip, TextField: TextField, Stepper: Stepper, Switch: Switch, Badge: Badge, GlassCard: GlassCard, DoseCircle: DoseCircle, DoseRow: DoseRow, NextCard: NextCard, DateStrip: DateStrip, Tabs: Tabs, NavPill: NavPill, BarChart: BarChart, StockRing: StockRing, Sheet: Sheet, Toast: Toast, Banner: Banner, ListRow: ListRow, EmptyState: EmptyState, TopBar: TopBar, ANCHOR_ICON: ANCHOR_ICON };
+  window.Better = { Icon: Icon, Button: Button, IconButton: IconButton, Chip: Chip, TextField: TextField, Stepper: Stepper, Switch: Switch, Badge: Badge, GlassCard: GlassCard, DoseCircle: DoseCircle, DoseRow: DoseRow, NextCard: NextCard, DateStrip: DateStrip, Tabs: Tabs, NavPill: NavPill, BarChart: BarChart, StockRing: StockRing, Sheet: Sheet, Toast: Toast, Banner: Banner, ListRow: ListRow, EmptyState: EmptyState, ANCHOR_ICON: ANCHOR_ICON };
 })();
