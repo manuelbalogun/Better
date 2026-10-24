@@ -9,7 +9,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
   padding-right:max(env(safe-area-inset-right,0px),var(--safe-area-inset-right,0px))}
 .sbar{display:none}
 .navwrap{bottom:calc(16px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}
-.toastwrap{bottom:calc(24px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}.toastwrap.up{bottom:calc(96px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}
+.toastwrap{top:calc(8px + max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px)))}
 .foot{padding-bottom:calc(24px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}
 .scroll{padding-bottom:calc(120px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}
 .phone .b-sheet{padding-bottom:calc(24px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}

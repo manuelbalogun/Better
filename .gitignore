@@ -6,3 +6,6 @@ android/local.properties
 *.jks
 *.keystore
 .DS_Store
+
+# The shared debug key must be committed so every build installs over the last one.
+!android/debug.keystore

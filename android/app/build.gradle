@@ -17,6 +17,19 @@ android {
         }
     }
     signingConfigs {
+        debug {
+            // A fixed debug key kept in the repo. Without it every CI build is signed with a
+            // throwaway key and Android refuses to install over the previous build
+            // ("package conflicts with an existing package"). If the file is missing, the
+            // build falls back to the machine's own debug key instead of failing.
+            def debugKs = file('../debug.keystore')
+            if (debugKs.exists()) {
+                storeFile debugKs
+                storePassword 'android'
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
+            }
+        }
         release {
             // Filled in from environment variables by the GitHub Actions build (see .github/workflows/android.yml).
             def ksPath = System.getenv("KEYSTORE_PATH")
@@ -29,6 +42,11 @@ android {
         }
     }
     buildTypes {
+        debug {
+            if (file('../debug.keystore').exists()) {
+                signingConfig signingConfigs.debug
+            }
+        }
         release {
             if (System.getenv("KEYSTORE_PATH") != null) {
                 signingConfig signingConfigs.release

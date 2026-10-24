@@ -7,7 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.graphics.Color;
 import android.os.PowerManager;
+import android.view.Window;
 import android.provider.Settings;
 
 import com.getcapacitor.JSObject;
@@ -22,6 +24,36 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  */
 @CapacitorPlugin(name = "BetterNative")
 public class BetterNativePlugin extends Plugin {
+
+    /** Paints the system bars and the window behind the web view in the app's own theme colour. */
+    @PluginMethod
+    public void setBars(final PluginCall call) {
+        final String hex = call.getString("color", "#FFFFFF");
+        final boolean dark = Boolean.TRUE.equals(call.getBoolean("dark", false));
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    int c = Color.parseColor(hex);
+                    Window w = getActivity().getWindow();
+                    w.getDecorView().setBackgroundColor(c);
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        getBridge().getWebView().setBackgroundColor(c);
+                    }
+                    if (Build.VERSION.SDK_INT < 35) {
+                        w.setStatusBarColor(c);
+                        w.setNavigationBarColor(c);
+                    }
+                    androidx.core.view.WindowInsetsControllerCompat ic =
+                            androidx.core.view.WindowCompat.getInsetsController(w, w.getDecorView());
+                    ic.setAppearanceLightStatusBars(!dark);
+                    ic.setAppearanceLightNavigationBars(!dark);
+                } catch (Exception ignored) {
+                }
+                call.resolve();
+            }
+        });
+    }
 
     @PluginMethod
     public void batteryStatus(PluginCall call) {

@@ -2,7 +2,7 @@ const {useState,useEffect,useRef,useMemo,useCallback}=React;
 const h2=(t,p,...c)=>{if(p&&p.class!=null){p={...p,className:p.class};delete p.class;}return React.createElement(t,p,...c);};
 const html=htm.bind(h2);
 const B=window.Better;
-const {Button,IconButton,Chip,TextField,Stepper,Switch,Badge,GlassCard,DoseCircle,DoseRow,NextCard,DateStrip,Tabs,NavPill,BarChart,StockRing,Sheet,Toast,Banner,ListRow,EmptyState,Icon}=B;
+const {Button,IconButton,Chip,TextField,Stepper,Switch,Badge,GlassCard,DoseCircle,DoseRow,NextCard,DateStrip,Tabs,NavPill,BarChart,StockRing,Sheet,Toast,Banner,ListRow,EmptyState,Icon,TopBar}=B;
 
 const ANCHORS=[{key:'wake',label:'Wake up'},{key:'breakfast',label:'Breakfast'},{key:'lunch',label:'Lunch'},{key:'dinner',label:'Dinner'},{key:'bedtime',label:'Bedtime'}];
 const ALABEL=Object.fromEntries(ANCHORS.map(a=>[a.key,a.label]));
@@ -86,8 +86,8 @@ function dayPct(s,k){const c=circleFor(s,k);return c.total?c.taken/c.total:0;}
 
 const Ctx=React.createContext(null);const useC=()=>React.useContext(Ctx);
 const cx=(...a)=>a.filter(Boolean).join(' ');
-function Hdr({title,onBack,right,sub}){const c=useC();return html`<div class="hdr"><${IconButton} icon="chevron-left" label="Back" variant="ghost" onClick=${onBack||c.back}/><div class="hdr__t"><b>${title}</b>${sub?html`<span>${sub}</span>`:null}</div>${right||null}</div>`;}
-function Page({children,pad}){return html`<div class="scroll" style=${pad?{paddingBottom:pad}:null}>${children}</div>`;}
+function Hdr({title,onBack,right,sub}){const c=useC();return html`<${TopBar} leading="back" onLeading=${onBack||c.back} title=${title} subtitle=${sub} actions=${right}/>`;}
+function Page({children,pad}){return html`<div class="scroll" style=${pad?{paddingBottom:pad}:null} onScroll=${e=>{const t=e.currentTarget.previousElementSibling;if(t&&t.classList.contains("b-tbw"))t.classList.toggle("is-scrolled",e.currentTarget.scrollTop>4);}}>${children}</div>`;}
 function Label({children}){return html`<div class="sec-label">${children}</div>`;}
 function BigTime({value,sub}){return html`<div class="bigtime"><b>${fmt(value)}</b>${sub?html`<span>${sub}</span>`:null}</div>`;}
 
@@ -131,7 +131,7 @@ else if(!left.length)body=html`<${EmptyState} icon="check" title="Everything was
 else body=html`<div class="b-stack">
 ${nb&&html`<${NextCard} anchor=${nb.anchor} anchorLabel=${ALABEL[nb.anchor]} state=${nb.late?'late':'upcoming'} time=${nb.snoozed&&nb.snoozeUntil?'Snoozed to '+fmt(nb.snoozeUntil):nb.late?'Was '+fmt(nb.time):fmt(nb.time)} meds=${nb.items.map(i=>i.d.med.name+' '+i.d.med.strength).join(', ')} takenCount=${nb.takenCount} onTake=${()=>c.act.takeBlock(nb.anchor)} onLate=${()=>c.sheet('late',{anchor:nb.anchor})} onSnooze=${()=>c.act.snooze(nb.anchor)}/>`}
 ${groups.map(g=>html`<div key=${g.a} class="b-stack"><${Label}>${ALABEL[g.a]} · ${fmt(eff(s,sel,g.a))}<//>${g.rows.map(d=>html`<${Row} key=${d.key} d=${d} k=${sel}/>`)}</div>`)}</div>`;
-return html`<div class="screen"><${Page}>
+return html`<div class="screen"><${TopBar} variant="root" brand title="Better" actions=${[{icon:'bell',label:'Notifications',onClick:()=>c.go('notifs'),dot:!!bn}]}/><${Page}>
 <div class="greet"><div><div class="greet__h">${GREET(s.now)}${s.name?', '+s.name:''}</div><div class="greet__d">${longDate(sel)}${sel===todayKey?' · today':''}</div></div></div>
 <div class="weekbar"><${IconButton} icon="chevron-left" label="Previous week" variant="ghost" onClick=${()=>setUi({wk:wk-1})}/><span>${wk===0?'This week':wk<0?(-wk)+(wk===-1?' week ago':' weeks ago'):wk+(wk===1?' week ahead':' weeks ahead')}</span><${IconButton} icon="chevron-right" label="Next week" variant="ghost" onClick=${()=>setUi({wk:wk+1})}/></div>
 <${DateStrip} days=${days} onSelect=${(i)=>setUi({sel:days[i].k})}/>
@@ -197,20 +197,19 @@ const create=()=>{c.act.addMed(dr);};
 const trySave=()=>{const dup=s.meds.find(m=>!m.deleted&&m.name.toLowerCase()===dr.name.trim().toLowerCase()&&m.anchors.some(a=>dr.anchors.includes(a)));if(dup)c.sheet('dup',{id:dup.id});else create();};
 if(step===5){return html`<div class="screen"><div class="center"><div class="bigcheck"><${Icon} name="check" size=${44}/></div><h2 class="h2">${dr.saved.name} added</h2><p class="p">${dr.saved.text}</p>
 <div class="b-stack" style=${{width:'100%',marginTop:12}}><${Button} full size="lg" onClick=${()=>c.act.afterAdd(true)}>Add another<//><${Button} full variant="ghost" onClick=${()=>c.act.afterAdd(false)}>Done<//></div></div></div>`;}
-return html`<div class="screen"><div class="hdr"><${IconButton} icon=${step>1?'chevron-left':'close'} label=${step>1?'Back':'Close'} variant="ghost" onClick=${()=>step>1?set({step:step-1}):close()}/><div class="hdr__t"><b>Add medication</b><span>Step ${step} of 4</span></div><${IconButton} icon="close" label="Close" variant="ghost" onClick=${close}/></div>
-<div class="dots">${[1,2,3,4].map(i=>html`<i key=${i} class=${i<=step?'on':''}/>`)}</div>
-<${Page} pad=${24}><div class="b-stack" style=${{gap:20}}>
-${step===1&&html`<${React.Fragment}><h2 class="h2">What are you taking?</h2>
+return html`<div class="screen"><${TopBar} leading=${step>1?"back":"close"} onLeading=${()=>step>1?set({step:step-1}):close()} title="Add medication" progress=${{step,total:4}}/>
+<${Page} pad=${24}><div class="fstack">
+${step===1&&html`<${React.Fragment}><div class="stephead"><h2 class="h2">What are you taking?</h2><p class="sub">Type the name of your medicine.</p></div>
 <${TextField} label="Medication name" icon="search" placeholder="Try gluc or metformin" value=${dr.name} onChange=${(v)=>set({name:v,item:null,typed:false,strength:'',other:false})} suggestions=${sugg} onPick=${(x)=>x.typed?set({typed:true,item:null,name:dr.name.trim()}):set({item:x.item,name:x.item.name,typed:false})}/>
 ${dr.item&&html`<${Banner} tone="success" title=${dr.item.name} body=${dr.item.brand?'Also sold as '+dr.item.brand:'Suggested from the built-in list'}/>`}
 ${dr.typed&&html`<${Banner} title=${'Adding “'+dr.name+'”'} body="Not in our list, and that is fine. You will type the strength next."/>`}
 ${q.length>=2&&!hits.length&&!dr.item&&!dr.typed?html`<div class="note">No match in the list. You can still add it.</div>`:null}<//>`}
-${step===2&&html`<${React.Fragment}><h2 class="h2">${dr.name} strength</h2>${needsStrength?html`<div class="b-row">${dr.item.strengths.map(x=>html`<${Chip} key=${x} selected=${!dr.other&&dr.strength===x} onClick=${()=>set({strength:x,other:false})}>${x}<//>`)}<${Chip} selected=${dr.other} onClick=${()=>set({other:true,strength:''})}>Other<//></div>`:null}
+${step===2&&html`<${React.Fragment}><div class="stephead"><h2 class="h2">${dr.name} strength</h2><p class="sub">Pick the strength on your pack.</p></div>${needsStrength?html`<div class="b-row">${dr.item.strengths.map(x=>html`<${Chip} key=${x} selected=${!dr.other&&dr.strength===x} onClick=${()=>set({strength:x,other:false})}>${x}<//>`)}<${Chip} selected=${dr.other} onClick=${()=>set({other:true,strength:''})}>Other<//></div>`:null}
 ${showCustom&&html`<${TextField} label="Strength" placeholder="e.g. 250 mg" value=${dr.strength} onChange=${(v)=>set({strength:v})} hint="Optional. Include the unit."/>`}<//>`}
-${step===3&&html`<${React.Fragment}><h2 class="h2">When do you take it?</h2><div class="b-stack"><${Label}>Time of day<//><${AnchorPick} value=${dr.anchors} onChange=${(v)=>set({anchors:v})}/><div class="note">Pick one or more. Reminders follow your anchor times.</div></div>
+${step===3&&html`<${React.Fragment}><div class="stephead"><h2 class="h2">When do you take it?</h2><p class="sub">Pick one or more. We will remind you at those times.</p></div><div class="b-stack"><${Label}>Time of day<//><${AnchorPick} value=${dr.anchors} onChange=${(v)=>set({anchors:v})}/></div>
 <div class="b-stack"><${Label}>Days<//><${DaysPick} value=${dr.days} onChange=${(v)=>set({days:v})}/></div>
 <div class="b-stack"><${Switch} label="Stop after a number of days" checked=${dr.course} onChange=${(v)=>set({course:v})}/>${dr.course&&html`<${Stepper} label="Course length" value=${dr.courseDays} min=${1} step=${1} hint="days" onChange=${(v)=>set({courseDays:v})}/>`}</div><//>`}
-${step===4&&html`<${React.Fragment}><h2 class="h2">Pills on hand</h2><div class="note">Optional. We warn you before they run out.</div>
+${step===4&&html`<${React.Fragment}><div class="stephead"><h2 class="h2">Pills on hand</h2><p class="sub">Optional. We will warn you before they run out.</p></div>
 <${Switch} label="Track how many I have" checked=${dr.pillsOn} onChange=${(v)=>set({pillsOn:v})}/>
 ${dr.pillsOn&&html`<${React.Fragment}><${Stepper} label="Pills on hand" value=${dr.pills} step=${10} onChange=${(v)=>set({pills:v})}/><div class="b-stack"><${Label}>Warn me when this many days are left<//><${LowPick} value=${dr.lowAt} onChange=${(v)=>set({lowAt:v})}/></div><//>`}<//>`}
 </div><//>
@@ -223,7 +222,7 @@ function MedsTab(){const c=useC();const s=c.s;const list=s.meds.filter(m=>!m.del
 const grp={active:[],paused:[],finished:[]};list.forEach(m=>grp[medState(m)].push(m));
 const lowN=grp.active.filter(m=>{const x=stockInfo(m);return x&&(x.low||x.out);});
 const row=(m)=>{const x=stockInfo(m),ms=medState(m);return html`<${ListRow} key=${m.id} icon="pill" anchor=${m.anchors[0]} title=${m.name+' '+m.strength} sub=${anchorsText(m)+(x&&ms==='active'?' · '+(m.pills<=0?'Out of pills':m.pills+' left'):'')} trailing=${ms==='paused'?html`<${Badge} icon="snooze">Paused<//>`:ms==='finished'?html`<${Badge}>Finished<//>`:x&&x.out?html`<${Badge} tone="danger" icon="alert">Out<//>`:x&&x.low?html`<${Badge} tone="warning" icon="alert">Low<//>`:null} onClick=${()=>c.go('med',{id:m.id})}/>`;};
-return html`<div class="screen"><${Page}><div class="greet"><div class="greet__h">Meds</div><div class="greet__d">${grp.active.length} active · ${list.length} total</div></div>
+return html`<div class="screen"><${TopBar} variant="root" title="Meds"/><${Page}><div class="note" style=${{margin:'4px 4px 12px'}}>${grp.active.length} active · ${list.length} total</div>
 ${lowN.length>0&&html`<div style=${{marginBottom:12}}><${Banner} tone=${lowN.some(m=>m.pills<=0)?'danger':'warning'} icon="box" title=${lowN.length===1?lowN[0].name+' is running low':lowN.length+' medications are running low'} body="Refill soon so you never miss a dose." action="Refill" onAction=${()=>c.sheet('refill',{id:lowN[0].id})}/></div>`}
 ${!list.length?html`<${EmptyState} icon="pill" title="No medications yet" body="Add your first one and Better will remind you at the right time of day." action="Add medication" onAction=${()=>c.go('add')}/>`:html`<div class="b-stack" style=${{gap:16}}>
 ${grp.active.length>0&&html`<div class="b-stack"><${Label}>Active<//><${GlassCard} pad=${0}>${grp.active.map(row)}<//></div>`}
@@ -234,9 +233,9 @@ ${grp.finished.length>0&&html`<div class="b-stack"><${Label}>Finished<//><${Glas
 function MedDetail({p}){const c=useC();const s=c.s;const m=s.meds.find(x=>x.id===p.id);if(!m||m.deleted)return html`<div class="screen"><${Hdr} title="Medication"/></div>`;
 const ms=medState(m),x=stockInfo(m);
 const hist=[6,5,4,3,2,1,0].map(i=>{const k=dk(addDays(TODAY,-i));const d=dosesFor(s,k).filter(y=>y.med.id===m.id);let t=0;d.forEach(y=>{if(statusOf(s,k,y)==='taken')t++;});return {k,taken:t,total:d.length,label:DOWL[fromKey(k).getDay()][0]};});
-return html`<div class="screen"><${Hdr} title=${m.name} sub=${m.strength+(ms!=='active'?' · '+ms:'')}/><${Page}><div class="b-stack" style=${{gap:16}}>
+return html`<div class="screen"><${Hdr} title=${m.name+' '+m.strength}/><${Page}><div class="b-stack" style=${{gap:16}}>
 <${GlassCard}><div class="kv"><span>When</span><b>${anchorsText(m)}</b></div><div class="kv"><span>Times</span><b>${m.anchors.slice().sort((a,b)=>AIDX[a]-AIDX[b]).map(a=>fmt(s.anchorTimes[a])).join(', ')}</b></div><div class="kv"><span>Days</span><b>${daysText(m)}</b></div>${m.end?html`<div class="kv"><span>Course ends</span><b>${longDate(m.end)}</b></div>`:null}${m.pausedUntil&&m.pausedUntil>todayKey?html`<div class="kv"><span>Paused until</span><b>${longDate(m.pausedUntil)}</b></div>`:null}<//>
-${x&&html`<${GlassCard}><div class="b-row" style=${{justifyContent:'space-between'}}><${StockRing} left=${Math.max(0,m.pills)} total=${Math.max(m.pills,30)} days=${x.days} lowAt=${m.lowAt}/><${Button} variant="secondary" size="sm" icon="box" onClick=${()=>c.sheet('refill',{id:m.id})}>Refill<//></div><//>`}
+${x&&html`<${GlassCard}><div class="b-row" style=${{justifyContent:'space-between'}}><${StockRing} left=${Math.max(0,m.pills)} total=${Math.max(m.pills,30)} days=${x.days} lowAt=${m.lowAt}/><${Button} variant="secondary" onClick=${()=>c.sheet('refill',{id:m.id})}>Refill<//></div><//>`}
 <${GlassCard}><${Label}>Last 7 days<//><div class="b-row" style=${{justifyContent:'space-between',marginTop:12}}>${hist.map(h=>html`<div key=${h.k} class="mini"><${DoseCircle} taken=${h.taken} total=${h.total} size=${30} future=${h.k>todayKey}/><small>${h.label}</small></div>`)}</div><//>
 <${GlassCard} pad=${0}><${ListRow} icon="edit" title="Edit" sub="Name, strength, times, stock" onClick=${()=>c.go('edit',{id:m.id})}/><${ListRow} icon="snooze" title=${ms==='paused'?'Resume or change pause':'Pause or stop'} sub=${ms==='finished'?'This course is finished':'Hide from Today without losing history'} onClick=${()=>c.sheet('pause',{id:m.id})}/><${ListRow} icon="trash" tone="danger" title="Delete" sub="Removes this medication and its history" onClick=${()=>c.sheet('delete',{id:m.id})}/><//>
 </div><//></div>`;}
@@ -244,7 +243,7 @@ ${x&&html`<${GlassCard}><div class="b-row" style=${{justifyContent:'space-betwee
 function EditMed({p}){const c=useC();const m=c.s.meds.find(x=>x.id===p.id);const [f,setF]=useState(()=>({name:m.name,strength:m.strength,anchors:m.anchors,days:m.days,pills:m.pills==null?0:m.pills,track:m.pills!=null,lowAt:m.lowAt}));
 const u=(patch)=>setF({...f,...patch});const dirty=JSON.stringify(f)!==JSON.stringify({name:m.name,strength:m.strength,anchors:m.anchors,days:m.days,pills:m.pills==null?0:m.pills,track:m.pills!=null,lowAt:m.lowAt});
 const ok=f.name.trim()&&f.anchors.length;
-return html`<div class="screen"><${Hdr} title="Edit medication"/><${Page} pad=${24}><div class="b-stack" style=${{gap:20}}>
+return html`<div class="screen"><${Hdr} title="Edit medication"/><${Page} pad=${24}><div class="fstack">
 <${TextField} label="Medication name" value=${f.name} onChange=${(v)=>u({name:v})} error=${f.name.trim()?'':'Name cannot be empty'}/>
 <${TextField} label="Strength" value=${f.strength} onChange=${(v)=>u({strength:v})}/>
 <div class="b-stack"><${Label}>Time of day<//><${AnchorPick} value=${f.anchors} onChange=${(v)=>u({anchors:v})}/>${f.anchors.length?null:html`<div class="err">Pick at least one time of day</div>`}</div>
@@ -282,19 +281,19 @@ const span=range==='week'?[0,6]:range==='month'?[0,34]:range==='3m'?[0,89]:[0,17
 const meds=s.meds.filter(m=>!m.deleted).map(m=>({m,r:rangeStats(s,span[0],span[1],m.id)})).filter(x=>x.r.total>0);
 const picked=sel!=null?bars[sel]:null;
 const pickedDoses=range==='week'&&picked?dosesFor(s,picked.k):[];
-return html`<div class="screen"><${Page}><div class="greet"><div class="greet__h">History</div><div class="greet__d">Check your routine</div></div>
+return html`<div class="screen"><${TopBar} variant="root" title="History"/><${Page}>
 ${!hasData||tot.total===0?html`<${EmptyState} icon="chart" title="Your routine will show here" body="After your first full day you will see how often you took each dose."/>`:html`<div class="b-stack" style=${{gap:16}}>
 <${Tabs} value=${range} onChange=${(v)=>c.setUi({hr:v,hsel:null})} items=${[{key:'week',label:'Week'},{key:'month',label:'Month'},{key:'3m',label:'3 mo'},{key:'6m',label:'6 mo'}]}/>
 <${GlassCard}><div class="stat"><b>${tot.total?Math.round(tot.taken/tot.total*100):0}%</b><span>${tot.taken} of ${tot.total} doses taken</span></div>
 <div style=${{marginTop:16}}><${BarChart} data=${bars} height=${140} onSelect=${(i)=>c.setUi({hsel:sel===i?null:i})} label=${range==='week'?'Doses taken per day':range==='month'?'Doses taken per week':'Doses taken per month'}/></div>
-${range!=='week'&&html`<div class="note" style=${{marginTop:8}}>Each bar is ${range==='month'?'one week':'one month'}. Tap a bar for its numbers.</div>`}<//>
+${range!=='week'&&html`<div class="note" style=${{marginTop:12}}>Each bar is ${range==='month'?'one week':'one month'}. Tap a bar for its numbers.</div>`}<//>
 ${picked&&range!=='week'&&html`<${GlassCard}><b>${picked.label}</b><div class="note">${picked.r.total?picked.r.taken+' of '+picked.r.total+' doses taken':'No data for this period yet.'}</div><//>`}
 ${picked&&range==='week'&&html`<div class="b-stack"><${Label}>${longDate(picked.k)}<//>${pickedDoses.length?pickedDoses.map(d=>html`<${Row} key=${d.key} d=${d} k=${picked.k}/>`):html`<${GlassCard}><div class="note">Nothing was scheduled this day.</div><//>`}</div>`}
 <div class="b-stack"><${Label}>By medication<//><${GlassCard} pad=${0}>${meds.map(x=>html`<div key=${x.m.id} class="adh"><div class="adh__t"><b>${x.m.name} ${x.m.strength}</b><span>${x.r.taken} of ${x.r.total}</span></div><div class="adh__bar"><i style=${{width:Math.round(x.r.taken/x.r.total*100)+'%'}}></i></div><b class="adh__p">${Math.round(x.r.taken/x.r.total*100)}%</b></div>`)}<//></div></div>`}
 <//></div>`;}
 
 function SettingsHome(){const c=useC();const s=c.s;const bn=banners(s);
-return html`<div class="screen"><${Page}><div class="greet"><div class="greet__h">Settings</div><div class="greet__d">Everything stays on this phone</div></div>
+return html`<div class="screen"><${TopBar} variant="root" title="Settings"/><${Page}>
 <div class="b-stack" style=${{gap:16}}>
 ${!s.lastExportAt&&s.meds.length>0&&html`<${Banner} title="Saved only on this phone" body="Export a backup so you never lose your list." action="Back up now" onAction=${()=>c.go('backup')}/>`}
 <${GlassCard} pad=${0}>
@@ -311,7 +310,7 @@ ${!s.lastExportAt&&s.meds.length>0&&html`<${Banner} title="Saved only on this ph
 function MyDay(){const c=useC();const s=c.s;
 const edit=(a)=>{const i=AIDX[a.key];const prev=i>0?s.anchorTimes[ANCHORS[i-1].key]:-1,next=i<4?s.anchorTimes[ANCHORS[i+1].key]:1440;
 c.sheet('time',{title:a.label+' time',value:s.anchorTimes[a.key],note:'Reminders for '+a.label.toLowerCase()+' follow this time.',validate:(v)=>v<=prev?a.label+' must be after '+ALABEL[ANCHORS[i-1].key]:v>=next?a.label+' must be before '+ALABEL[ANCHORS[i+1].key]:'',onSave:(v)=>c.act.setAnchor(a.key,v)});};
-return html`<div class="screen"><${Hdr} title="My day" sub="Tap a time to change it"/><${Page}><${GlassCard} pad=${0}>${ANCHORS.map(a=>html`<div key=${a.key} class="arow" data-tone=${a.key}><span class="arow__ic"><${Icon} name=${B.ANCHOR_ICON[a.key]} size=${22}/></span><b>${a.label}</b><${Chip} variant="time" onClick=${()=>edit(a)}>${fmt(s.anchorTimes[a.key])}<//></div>`)}<//>
+return html`<div class="screen"><${Hdr} title="My day"/><${Page}><div class="note" style=${{margin:"4px 4px 12px"}}>Tap a time to change it.</div><${GlassCard} pad=${0}>${ANCHORS.map(a=>html`<div key=${a.key} class="arow" data-tone=${a.key}><span class="arow__ic"><${Icon} name=${B.ANCHOR_ICON[a.key]} size=${22}/></span><b>${a.label}</b><${Chip} variant="time" onClick=${()=>edit(a)}>${fmt(s.anchorTimes[a.key])}<//></div>`)}<//>
 <div class="note" style=${{marginTop:12}}>Changes apply from the next reminder. Doses already taken stay as recorded.</div><//></div>`;}
 
 function Notifs(){const c=useC();const s=c.s,st=s.settings;const set=(k,v)=>c.act.setSetting(k,v);
@@ -319,13 +318,13 @@ return html`<div class="screen"><${Hdr} title="Notifications"/><${Page}><div cla
 ${!s.perms.notif&&html`<${Banner} tone="danger" title="Notifications are off" body="Without them, Better cannot remind you." action="Turn on" onAction=${()=>c.act.fix('notif')}/>`}
 <${GlassCard}><${Switch} label="Sound" checked=${st.sound} onChange=${(v)=>set('sound',v)}/><${Switch} label="Vibrate" checked=${st.vibrate} onChange=${(v)=>set('vibrate',v)}/><${Switch} label="One follow-up if I miss a dose" checked=${st.followup} onChange=${(v)=>set('followup',v)}/><${Switch} label="Low stock alerts" checked=${st.lowstock} onChange=${(v)=>set('lowstock',v)}/><${Switch} label="Show medicine names on lock screen" checked=${st.showNames} onChange=${(v)=>set('showNames',v)}/><//>
 <${GlassCard}><${Label}>Snooze length<//><div class="b-row" style=${{marginTop:12}}>${[5,10,15,30].map(n=>html`<${Chip} key=${n} selected=${st.snooze===n} onClick=${()=>set('snooze',n)}>${n} min<//>`)}</div><//>
-<${Button} full variant="secondary" icon="bell" onClick=${()=>c.act.testNotif()}>Send a test reminder<//></div><//></div>`;}
+<${Button} full variant="secondary" onClick=${()=>c.act.testNotif()}>Send a test reminder<//></div><//></div>`;}
 
 const CHECKS=[{key:'notif',icon:'bell',title:'Notifications',good:'Allowed',bad:'Turned off'},{key:'exact',icon:'clock',title:'Exact alarms',good:'Allowed',bad:'Not allowed'},{key:'battery',icon:'battery',title:'Battery optimisation',good:'Unrestricted',bad:'Restricted'},{key:'autostart',icon:'sun',title:'Autostart',good:'Allowed',bad:'Blocked',note:'Needed on Tecno, Infinix, Xiaomi and Samsung'},{key:'dnd',icon:'moon',title:'Do Not Disturb',good:'Not blocking',bad:'Blocking'}];
 function Reliability({list}){const c=useC();const s=c.s;const items=list?CHECKS.filter(x=>list.includes(x.key)):CHECKS;const bad=items.filter(x=>!s.perms[x.key]).length;
 return html`<div class="b-stack"><${Banner} tone=${bad?'warning':'success'} title=${bad?bad+' thing'+(bad>1?'s':'')+' to fix':'All set'} body=${bad?'Fix these so reminders arrive on time.':'Reminders will arrive on time.'}/>
-<${GlassCard} pad=${0}>${items.map(x=>html`<div key=${x.key} class="chk"><span class="chk__ic"><${Icon} name=${x.icon} size=${22}/></span><div class="chk__t"><b>${x.title}</b><span>${s.perms[x.key]?x.good:x.bad}${x.note&&!s.perms[x.key]?' · '+x.note:''}</span></div>${s.perms[x.key]?html`<${Badge} tone="success" icon="check">Good<//>`:html`<${Button} size="sm" variant="secondary" onClick=${()=>c.act.fix(x.key)}>Fix<//>`}</div>`)}<//></div>`;}
-function ReliabilityScreen(){return html`<div class="screen"><${Hdr} title="Reminder reliability" sub="Checked every time you open this"/><${Page}><${Reliability}/><//></div>`;}
+<${GlassCard} pad=${0}>${items.map(x=>html`<div key=${x.key} class="chk"><span class="chk__ic"><${Icon} name=${x.icon} size=${22}/></span><div class="chk__t"><b>${x.title}</b><span>${s.perms[x.key]?x.good:x.bad}${x.note&&!s.perms[x.key]?' · '+x.note:''}</span></div>${s.perms[x.key]?html`<${Badge} tone="success" icon="check">Good<//>`:html`<${Button} variant="secondary" onClick=${()=>c.act.fix(x.key)}>Fix<//>`}</div>`)}<//></div>`;}
+function ReliabilityScreen(){return html`<div class="screen"><${Hdr} title="Reminder reliability"/><${Page}><div class="note" style=${{margin:"4px 4px 12px"}}>Checked every time you open this.</div><${Reliability}/><//></div>`;}
 
 const SYS={notif:{t:'Better · Notifications',l:'Allow notifications'},exact:{t:'Alarms & reminders',l:'Allow setting alarms and reminders'},battery:{t:'Better · Battery',l:'Unrestricted'},autostart:{t:'Autostart',l:'Allow Better to start itself'},dnd:{t:'Do Not Disturb',l:'Let Better break through'}};
 function SysSheet({p}){const c=useC();const [on,setOn]=useState(!!c.s.perms[p.key]);const x=SYS[p.key];
@@ -364,23 +363,23 @@ function Onboarding(){const c=useC();const s=c.s;const ob=c.nav.ob;const [nm,set
 useEffect(()=>{if(ob!=='A1')return;const t=setTimeout(()=>c.setOb('A2'),1800);return ()=>clearTimeout(t);},[ob]);
 if(ob==='A1')return html`<div class="screen splash" onClick=${()=>c.setOb('A2')}><div class="logo"><${DoseCircle} taken=${2} total=${3} size=${104}/></div><h1 class="display">Better</h1><p>Reminders that follow your day, not the clock.</p></div>`;
 const back=OBBACK[ob];const step=['A3','A4','A5','A6','A7'].indexOf(ob);
-const head=back?html`<div class="hdr"><${IconButton} icon="chevron-left" label="Back" variant="ghost" onClick=${()=>c.setOb(back)}/><div class="dots" style=${{margin:0,flex:1}}>${[0,1,2,3,4].map(i=>html`<i key=${i} class=${i<=step?'on':''}/>`)}</div></div>`:null;
+const head=back?html`<${TopBar} leading="back" onLeading=${()=>c.setOb(back)}><div class="dots">${[0,1,2,3,4].map(i=>html`<i key=${i} class=${i<=step?"on":""}/>`)}</div><//>`:null;
 let body,foot;
 if(ob==='A2'){body=html`<div class="center" style=${{justifyContent:'flex-start',paddingTop:48}}><h1 class="display xl">Take your meds on time.</h1><p class="p">Reminders that follow your day, not the clock.</p>
 <div class="stackcards">${[['breakfast','Breakfast','8:00 am · 3 meds',-3],['lunch','Lunch','1:00 pm · 1 med',2],['bedtime','Bedtime','10:30 pm · 2 meds',-2]].map(([a,l,t,r])=>html`<div key=${a} class="b-glass tilt" data-tone=${a} style=${{transform:'rotate('+r+'deg)'}}><span class="tilt__m"><${Icon} name=${B.ANCHOR_ICON[a]} size=${22}/></span><div><b>${l}</b><div class="note">${t}</div></div></div>`)}</div></div>`;
 foot=html`<div class="b-stack"><${Button} full size="lg" onClick=${()=>c.setOb('A3')}>Get started<//><div class="note" style=${{textAlign:'center'}}>Free. No account. Saved only on this phone.</div></div>`;}
-if(ob==='A3'){body=html`<div class="b-stack" style=${{gap:16}}><h2 class="h2">What should we call you?</h2><${TextField} label="Your name" placeholder="Your first name" value=${nm} onChange=${setNm} hint="Saved only on this phone."/></div>`;
+if(ob==='A3'){body=html`<div class="fstack"><div class="stephead"><h2 class="h2">What should we call you?</h2><p class="sub">Just your first name. It stays on this phone.</p></div><${TextField} ariaLabel="First name" placeholder="First name" value=${nm} onChange=${setNm}/></div>`;
 foot=html`<div class="b-stack"><${Button} full size="lg" disabled=${!nm.trim()} onClick=${()=>{c.act.setName(nm.trim());c.setOb('A4');}}>Continue<//><${Button} full variant="ghost" onClick=${()=>{c.act.setName('');c.setOb('A4');}}>Skip<//></div>`;}
-if(ob==='A4'){body=html`<div class="b-stack" style=${{gap:16}}><h2 class="h2">When does your day happen?</h2><div class="note">Reminders follow these times. Change them anytime.</div><${AnchorRows}/></div>`;foot=html`<${Button} full size="lg" onClick=${()=>c.setOb('A5')}>Continue<//>`;}
+if(ob==='A4'){body=html`<div class="fstack"><div class="stephead"><h2 class="h2">Set your daily times</h2><p class="sub">We will remind you at these times. You can change them later.</p></div><${AnchorRows}/></div>`;foot=html`<${Button} full size="lg" onClick=${()=>c.setOb('A5')}>Continue<//>`;}
 if(ob==='A5'){const asked=s.notifAsked;body=html`<div class="center"><div class="bigcheck" style=${{background:'var(--glass-strong)',color:'var(--ink)',border:'1px solid var(--line)'}}><${Icon} name="bell" size=${44}/></div><h2 class="h2">Let Better remind you</h2><p class="p">Reminders arrive as notifications. Without them, Better cannot tell you it is time.</p>
 ${s.perms.notif?html`<${Banner} tone="success" title="Reminders are on"/>`:asked>0?html`<${Banner} tone="danger" title="Notifications are off" body=${asked>1?'Android will not ask again. Turn them on in system settings.':'You can try again, or turn them on in system settings.'}/>`:null}</div>`;
 foot=s.perms.notif?html`<${Button} full size="lg" onClick=${()=>c.setOb('A6')}>Continue<//>`:html`<div class="b-stack"><${Button} full size="lg" onClick=${()=>c.act.askNotif()}>${asked>1?'Open system settings':asked>0?'Try again':'Allow reminders'}<//>${asked>0&&html`<${Button} full variant="ghost" onClick=${()=>c.setOb('A6')}>Continue anyway<//>`}</div>`;}
-if(ob==='A6'){const ok=['exact','battery','autostart'].every(k=>s.perms[k]);body=html`<div class="b-stack" style=${{gap:16}}><h2 class="h2">Make reminders reliable</h2><div class="note">Some phones stop apps from running in the background. Check these so no reminder is missed.</div><${Reliability} list=${['exact','battery','autostart']}/></div>`;foot=html`<${Button} full size="lg" variant=${ok?'primary':'secondary'} onClick=${()=>c.setOb('A7')}>${ok?'Continue':'Skip for now'}<//>`;}
+if(ob==='A6'){const ok=['exact','battery','autostart'].every(k=>s.perms[k]);body=html`<div class="fstack"><div class="stephead"><h2 class="h2">Make reminders reliable</h2><p class="sub">Some phones close apps in the background. Check these so every reminder arrives.</p></div><${Reliability} list=${['exact','battery','autostart']}/></div>`;foot=html`<${Button} full size="lg" variant=${ok?'primary':'secondary'} onClick=${()=>c.setOb('A7')}>${ok?'Continue':'Skip for now'}<//>`;}
 if(ob==='A7'){body=html`<div class="center"><div class="bigcheck" style=${{background:'var(--glass-strong)',color:'var(--ink)',border:'1px solid var(--line)'}}><${Icon} name="pill" size=${44}/></div><h2 class="h2">Add your first medication</h2><p class="p">It takes about 30 seconds. You can add more any time.</p></div>`;
-foot=html`<div class="b-stack"><${Button} full size="lg" icon="plus" onClick=${()=>c.go('add')}>Add medication<//><${Button} full variant="ghost" onClick=${()=>c.setOb('A8')}>I will do this later<//></div>`;}
+foot=html`<div class="b-stack"><${Button} full size="lg" onClick=${()=>c.go('add')}>Add medication<//><${Button} full variant="ghost" onClick=${()=>c.setOb('A8')}>I will do this later<//></div>`;}
 if(ob==='A8'){const first=firstReminder(s);body=html`<div class="center"><div class="bigcheck" style=${{background:'var(--glass-strong)',color:'var(--ink)',border:'1px solid var(--line)'}}><${Icon} name="check" size=${44}/></div><h2 class="h2">${first?'First reminder set':'You are all set'}</h2>
-${first?html`<div class="b-glass" style=${{width:'100%',textAlign:'left'}}><div class="note">${first.when}</div><div class="numeral">${ALABEL[first.anchor]} · ${fmt(first.time)}</div><div class="note">${first.names}</div></div>`:html`<p class="p">Add medications from the plus button any time.</p>`}<p class="p">Saved only on this phone.</p></div>`;
-foot=html`<div class="b-stack">${first&&html`<${Button} full variant="secondary" icon="bell" onClick=${()=>c.act.testNotif()}>Send a test reminder<//>`}<${Button} full size="lg" onClick=${()=>c.act.finishOb()}>Go to Today<//></div>`;}
+${first?html`<div class="b-glass b-stack" style=${{width:'100%',textAlign:'center'}}><div class="note">${first.when}</div><div class="numeral">${ALABEL[first.anchor]} · ${fmt(first.time)}</div><div class="note">${first.names}</div></div>`:html`<p class="p">Add medications from the plus button any time.</p>`}<p class="p">Saved only on this phone.</p></div>`;
+foot=html`<div class="b-stack">${first&&html`<${Button} full variant="secondary" onClick=${()=>c.act.testNotif()}>Send a test reminder<//>`}<${Button} full size="lg" onClick=${()=>c.act.finishOb()}>Go to Today<//></div>`;}
 return html`<div class="screen">${head}<${Page} pad=${24}>${body}<//><div class="foot">${foot}</div></div>`;}
 function firstReminder(s){const live=s.meds.filter(m=>!m.deleted);if(!live.length)return null;
 for(let off=0;off<2;off++){const k=dk(addDays(TODAY,off));const ds=dosesFor(s,k);for(const a of ANCHORS){const g=ds.filter(d=>d.anchor===a.key);if(!g.length)continue;const t=eff(s,k,a.key);if(off===0&&t<=s.now)continue;return {anchor:a.key,time:t,when:off?'Tomorrow':'Today',names:g.map(d=>d.med.name+' '+d.med.strength).join(', ')};}}return null;}
@@ -502,12 +501,13 @@ const syncKey=JSON.stringify([s.meds,s.doses,s.anchorTimes,s.overrides,s.snoozes
 useEffect(()=>{const t=setTimeout(()=>syncNotifications(s,setS),400);return ()=>clearTimeout(t);},[syncKey]);
 useEffect(()=>{ // system bar icons + background follow the theme
   const SB=PL('SystemBars');if(SB)SB.setStyle({style:theme==='dusk'?'DARK':'LIGHT'}).catch(()=>{});
-  const el=document.querySelector('.phone');if(el){const bg=getComputedStyle(el).backgroundColor;document.documentElement.style.background=bg;document.body.style.background=bg;}
+  const el=document.querySelector('.phone');if(el){const bg=getComputedStyle(el).backgroundColor;document.documentElement.style.background=bg;document.body.style.background=bg;
+    const m=bg.match(/\d+/g);if(m){const hex='#'+m.slice(0,3).map(x=>(+x).toString(16).padStart(2,'0')).join('');const BN=PL('BetterNative');if(BN&&BN.setBars)BN.setBars({color:hex,dark:theme==='dusk'}).catch(()=>{});}}
 },[theme]);
 return html`<${Ctx.Provider} value=${ctx}><div class="phone" data-theme=${theme}>
 <div class="body">${screen}</div>
 ${showNav&&html`<div class="navwrap"><${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>go('add')} items=${[{key:'today',icon:'home',label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div>`}
-${toastS&&html`<div class=${'toastwrap'+(showNav?' up':'')}><${Toast} message=${toastS.msg} action=${toastS.action} onAction=${()=>{toastS.onAction&&toastS.onAction();setToastS(null);}}/></div>`}
+${toastS&&html`<div class="toastwrap"><${Toast} message=${toastS.msg} action=${toastS.action} onAction=${()=>{toastS.onAction&&toastS.onAction();setToastS(null);}}/></div>`}
 ${sh}
 </div><//>`;}
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
