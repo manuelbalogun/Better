@@ -128,7 +128,7 @@ else if(tab==='taken'){body=done.length?html`<div class="b-stack">${done.map(x=>
 else if(!ds.length)body=html`<${EmptyState} icon="calendar" title="Nothing to take" body=${ago<0?'No doses are scheduled for this day.':'Nothing was scheduled on this day.'}/>`;
 else if(isToday&&!left.length)body=html`<${EmptyState} icon="check" title="All done for today" body=${'Next up: '+ALABEL[ANCHORS.find(a=>dosesFor(s,dk(addDays(TODAY,1))).some(d=>d.anchor===a.key))?.key||'wake']+' tomorrow at '+fmt(s.anchorTimes[ANCHORS.find(a=>dosesFor(s,dk(addDays(TODAY,1))).some(d=>d.anchor===a.key))?.key||'wake'])+'.'}/>`;
 else if(!left.length)body=html`<${EmptyState} icon="check" title="Everything was taken" body="All doses on this day are logged."/>`;
-else body=html`<div class="b-stack">
+else body=html`<div class="b-stack daystack">
 ${nb&&html`<${NextCard} anchor=${nb.anchor} anchorLabel=${ALABEL[nb.anchor]} state=${nb.late?'late':'upcoming'} time=${nb.snoozed&&nb.snoozeUntil?'Snoozed to '+fmt(nb.snoozeUntil):nb.late?'Was '+fmt(nb.time):fmt(nb.time)} meds=${nb.items.map(i=>i.d.med.name+' '+i.d.med.strength).join(', ')} takenCount=${nb.takenCount} onTake=${()=>c.act.takeBlock(nb.anchor)} onLate=${()=>c.sheet('late',{anchor:nb.anchor})} onSnooze=${()=>c.act.snooze(nb.anchor)}/>`}
 ${groups.map(g=>html`<div key=${g.a} class="b-stack"><${Label}>${ALABEL[g.a]} · ${fmt(eff(s,sel,g.a))}<//>${g.rows.map(d=>html`<${Row} key=${d.key} d=${d} k=${sel}/>`)}</div>`)}</div>`;
 return html`<div class="screen"><${TopBar} variant="root" title=${GREET(s.now)+(s.name?', '+s.name:'')} actions=${[{icon:'bell',label:'Notifications',onClick:()=>c.go('notifs'),dot:!!bn}]}/><${Page}>
