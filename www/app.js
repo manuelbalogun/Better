@@ -67,6 +67,7 @@ if(scn==='broken'){base.perms={notif:false,exact:false,battery:false,autostart:f
 if(scn==='nohist'){base.doses={};base.hist=false;base.meds=base.meds.map(m=>({...m,start:todayKey}));}
 return base;}
 
+const DEV_SAMPLE=true; // TESTING ONLY - set false before a Play Store release
 const KEY='better-v1';
 function loadState(){try{const j=localStorage.getItem(KEY);if(j){const s=JSON.parse(j);if(s&&s.meds){s.now=realNow();return s;}}}catch(e){}return {...makeState('fresh'),now:realNow()};}
 function saveState(s){try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}}
@@ -305,7 +306,7 @@ ${!s.lastExportAt&&s.meds.length>0&&html`<${Banner} title="Saved only on this ph
 <${ListRow} icon="moon" title="Appearance" sub=${s.settings.theme==='system'?'Follow system':s.settings.theme==='dawn'?'Dawn':'Dusk'} onClick=${()=>c.go('appearance')}/>
 <${ListRow} icon="edit" title="Your name" sub=${s.name||'Not set'} onClick=${()=>c.go('name')}/>
 <${ListRow} icon="info" title="About and privacy" sub="Free, private, on your phone" onClick=${()=>c.go('about')}/><//>
-<${GlassCard} pad=${0}><${ListRow} icon="trash" tone="danger" title="Delete all my data" sub="Erases everything on this phone" onClick=${()=>c.go('wipe')}/><//></div><//></div>`;}
+<${GlassCard} pad=${0}>${DEV_SAMPLE&&html`<${ListRow} icon="box" title="Load sample data" sub="Five medications and four weeks of history, for testing" onClick=${()=>c.act.loadSample()}/>`}<${ListRow} icon="trash" tone="danger" title="Delete all my data" sub="Erases everything on this phone" onClick=${()=>c.go('wipe')}/><//></div><//></div>`;}
 
 function MyDay(){const c=useC();const s=c.s;
 const edit=(a)=>{const i=AIDX[a.key];const prev=i>0?s.anchorTimes[ANCHORS[i-1].key]:-1,next=i<4?s.anchorTimes[ANCHORS[i+1].key]:1440;
@@ -440,6 +441,7 @@ restore:(data)=>{setS(p=>({...makeState('fresh'),...data.state,onboarded:true,pe
 exportBackup:async()=>{const st={...s};delete st.now;delete st.perms;delete st.notifAsked;const name='Better-backup-'+todayKey+'.json';await NativeIO.exportFile(name,JSON.stringify({app:'Better',v:1,at:new Date().toISOString(),state:st}));setS(p=>({...p,lastExportAt:MON[TODAY.getMonth()]+' '+TODAY.getDate()}));},
 askNotif:async()=>{const ok=await NativeIO.requestNotif();if(ok)setPerm('notif',true);else{setS(p=>({...p,perms:{...p.perms,notif:false},notifAsked:p.notifAsked+1}));if(s.notifAsked>=1)NativeIO.open('notif');}},
 fix:async(key)=>{await NativeIO.open(key);if(key==='autostart'||key==='dnd')setPerm(key,true);},
+loadSample:()=>{setS(p=>({...makeState('morning'),settings:p.settings,name:p.name||'Ayodeji'}));setNav({tab:'today',stack:[],ob:'A1'});setUiS({sel:todayKey,tab:'up',wk:0,hr:'week',hsel:null});toast('Sample data loaded');},
 wipe:()=>{setSS(makeState('fresh'));setNav({tab:'today',stack:[],ob:'A1'});setUiS({sel:todayKey,tab:'up',wk:0,hr:'week',hsel:null});},
 finishOb:()=>{setS(p=>({...p,onboarded:true}));setNav(n=>({...n,tab:'today',stack:[]}));},
 testNotif:async()=>{if(!s.perms.notif){toast('Notifications are off. Turn them on first.');return;}const ok=await NativeIO.test();toast(ok?'Test reminder coming in a few seconds':'Could not send a test reminder');}
