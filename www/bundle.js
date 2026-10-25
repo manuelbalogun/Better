@@ -167,8 +167,8 @@
     var t = p.tone || 'info';
     return h('div', { className: cx('b-banner', 'b-banner--' + t), role: t === 'danger' ? 'alert' : 'status' },
       h('div', { className: 'b-banner__i' }, h(Icon, { name: p.icon || (t === 'success' ? 'check' : t === 'info' ? 'info' : 'alert'), size: 19 })),
-      h('div', { className: 'b-banner__t' }, h('b', null, p.title), p.body ? h('span', null, p.body) : null,
-        p.action ? h(Button, { variant: 'secondary', onClick: p.onAction }, p.action) : null));
+      h('div', { className: 'b-banner__t' }, h('b', null, p.title), p.body ? h('span', null, p.body) : null),
+      p.action ? h(Button, { variant: 'secondary', onClick: p.onAction }, p.action) : null);
   }
   function ListRow(p) {
     return h('button', { type: 'button', className: cx('b-list-row', p.tone === 'danger' && 'b-list-row--danger'), disabled: p.disabled, onClick: p.onClick },
