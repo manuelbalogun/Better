@@ -131,8 +131,8 @@ else if(!left.length)body=html`<${EmptyState} icon="check" title="Everything was
 else body=html`<div class="b-stack">
 ${nb&&html`<${NextCard} anchor=${nb.anchor} anchorLabel=${ALABEL[nb.anchor]} state=${nb.late?'late':'upcoming'} time=${nb.snoozed&&nb.snoozeUntil?'Snoozed to '+fmt(nb.snoozeUntil):nb.late?'Was '+fmt(nb.time):fmt(nb.time)} meds=${nb.items.map(i=>i.d.med.name+' '+i.d.med.strength).join(', ')} takenCount=${nb.takenCount} onTake=${()=>c.act.takeBlock(nb.anchor)} onLate=${()=>c.sheet('late',{anchor:nb.anchor})} onSnooze=${()=>c.act.snooze(nb.anchor)}/>`}
 ${groups.map(g=>html`<div key=${g.a} class="b-stack"><${Label}>${ALABEL[g.a]} · ${fmt(eff(s,sel,g.a))}<//>${g.rows.map(d=>html`<${Row} key=${d.key} d=${d} k=${sel}/>`)}</div>`)}</div>`;
-return html`<div class="screen"><${TopBar} variant="root" brand title="Better" actions=${[{icon:'bell',label:'Notifications',onClick:()=>c.go('notifs'),dot:!!bn}]}/><${Page}>
-<div class="greet"><div><div class="greet__h">${GREET(s.now)}${s.name?', '+s.name:''}</div><div class="greet__d">${longDate(sel)}${sel===todayKey?' · today':''}</div></div></div>
+return html`<div class="screen"><${TopBar} variant="root" title=${GREET(s.now)+(s.name?', '+s.name:'')} actions=${[{icon:'bell',label:'Notifications',onClick:()=>c.go('notifs'),dot:!!bn}]}/><${Page}>
+<div class="note" style=${{margin:'0 0 12px'}}>${longDate(sel)}${sel===todayKey?' · today':''}</div>
 <div class="weekbar"><${IconButton} icon="chevron-left" label="Previous week" variant="ghost" onClick=${()=>setUi({wk:wk-1})}/><span>${wk===0?'This week':wk<0?(-wk)+(wk===-1?' week ago':' weeks ago'):wk+(wk===1?' week ahead':' weeks ahead')}</span><${IconButton} icon="chevron-right" label="Next week" variant="ghost" onClick=${()=>setUi({wk:wk+1})}/></div>
 <${DateStrip} days=${days} onSelect=${(i)=>setUi({sel:days[i].k})}/>
 ${bn&&html`<div style=${{marginTop:12}}><${Banner} tone=${bn.tone} title=${bn.title} body=${bn.body} action=${bn.action} onAction=${()=>c.go('reliability')}/></div>`}
