@@ -39,7 +39,6 @@ body{background:var(--pg-bg);color:var(--pg-fg);font-family:'Google Sans',system
 [data-still] *,[data-still] *::before,[data-still] *::after{animation:none!important;transition:none!important}.b-glass.tilt,.tilt{display:flex;align-items:center;gap:12px;padding:14px 18px;margin-top:-10px;text-align:left;border-radius:28px;background:var(--glass-strong);color:var(--ink);box-shadow:var(--shadow-glass)}
 .tilt__m{width:40px;height:40px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:flex;align-items:center;justify-content:center}
 .numeral{font:700 26px/30px var(--font-display);letter-spacing:-.03em}
-.bigtime{display:flex;flex-direction:column;align-items:center;gap:2px}.bigtime b{font:700 48px/52px var(--font-display);letter-spacing:-.03em}.bigtime span{font:500 14px/20px var(--font-body);color:var(--ink-muted)}
 .kv{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--line);font:500 15px/22px var(--font-body)}.kv:last-child{border-bottom:0}.kv span{color:var(--ink-muted)}.kv b{text-align:right}
 .mini{display:flex;flex-direction:column;align-items:center;gap:12px}.mini small{font:700 11px/14px var(--font-body);color:var(--ink-muted)}
 .stat{display:flex;align-items:baseline;gap:12px}.stat b{font:700 44px/44px var(--font-display);letter-spacing:-.03em}.stat span{font:500 15px/22px var(--font-body);color:var(--ink-muted)}
@@ -52,7 +51,7 @@ body{background:var(--pg-bg);color:var(--pg-fg);font-family:'Google Sans',system
 .chk__ic{width:40px;height:40px;border-radius:12px;background:var(--track);display:flex;align-items:center;justify-content:center;flex:none}
 .chk__t{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.chk__t b{display:block;font:700 16px/22px var(--font-body)}.chk__t span{display:block;font:500 13px/18px var(--font-body);color:var(--ink-muted)}
 .ul{margin:0;padding-left:20px;font:500 15px/24px var(--font-body)}.ul li+li{margin-top:12px}
-.navwrap{position:absolute;left:0;right:0;bottom:16px;display:flex;justify-content:center;pointer-events:none;z-index:5}.navwrap>*{pointer-events:auto}
+.navwrap{container-type:inline-size;container-name:navbar;position:absolute;left:0;right:0;bottom:16px;display:flex;justify-content:center;pointer-events:none;z-index:5}.navwrap>*{pointer-events:auto}
 .toastwrap{position:absolute;left:16px;right:16px;top:48px;display:flex;justify-content:center;z-index:30}
 .phone .b-scrim--fixed{position:absolute;z-index:40}
 .phone .b-sheet{max-height:92%;overflow-y:auto}
@@ -185,14 +184,22 @@ button.b-reset,.b-btn,.b-ibtn,.b-chip{font-family:var(--font-body);cursor:pointe
 .b-tab{min-height:44px;padding:0 16px;text-align:center;white-space:nowrap;border-radius:var(--radius-pill);border:0;background:transparent;color:var(--ink-muted);font:700 15px/20px var(--font-body);cursor:pointer}
 .b-tab[aria-selected=true]{background:var(--brand);color:var(--on-brand)}
 /* NavPill: a compact dark pill; the selected destination is a white pill with its label. The add button sits beside it. */
-.b-navrow{display:inline-flex;align-items:center;gap:8px}
-.b-nav{display:inline-flex;align-items:center;gap:2px;padding:6px;border-radius:var(--radius-pill);background:var(--nav);box-shadow:var(--shadow-float),inset 0 0 0 1px color-mix(in srgb,var(--on-nav) 10%,transparent)}
-.b-nav button{min-width:44px;height:48px;border-radius:var(--radius-pill);border:0;background:transparent;color:var(--on-nav);display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;font:600 14px/16px var(--font-body);cursor:pointer}
+.b-navrow{position:relative;display:inline-flex;align-items:center;max-width:100%}
+.b-nav{display:inline-flex;align-items:center;min-width:0;gap:2px;padding:6px;border-radius:var(--radius-pill);background:var(--nav);box-shadow:var(--shadow-float),inset 0 0 0 1px color-mix(in srgb,var(--on-nav) 10%,transparent)}
+.b-nav button{min-width:42px;height:48px;border-radius:var(--radius-pill);border:0;background:transparent;color:var(--on-nav);display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;font:600 14px/16px var(--font-body);cursor:pointer}
 .b-nav button :is(.b-icon,.b-nav__num){opacity:.72}
 .b-nav__num{width:24px;height:24px;display:flex;align-items:center;justify-content:center;font:700 15px/24px var(--font-display);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .b-nav button[aria-current=page]{background:var(--nav-active);color:var(--on-nav-active);padding:0 18px 0 14px}
+/* On a narrow phone the label will not fit beside five destinations, so the
+   selected one keeps its white pill but shows only its icon. */
+@container navbar (max-width:336px){
+  .b-nav__lbl{display:none}
+  .b-nav button[aria-current=page]{padding:0}
+  .b-nav__add{width:52px;height:52px}
+}
 .b-nav button[aria-current=page] :is(.b-icon,.b-nav__num){opacity:1}
-.b-nav__add{width:56px;height:56px;border-radius:50%;border:0;background:var(--accent-solid);color:var(--on-accent-solid);box-shadow:var(--shadow-float);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.b-nav__lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b-nav__add{position:absolute;right:0;bottom:calc(100% + 12px);width:56px;height:56px;border-radius:50%;border:0;background:var(--accent-solid);color:var(--on-accent-solid);box-shadow:var(--shadow-float);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
 /* Day circles */
 .b-strip{display:flex;gap:4px;justify-content:space-between}
 .b-day{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:44px;min-height:84px;padding:6px 2px;border-radius:var(--radius-pill);border:0;background:transparent;color:var(--ink);cursor:pointer;font-family:var(--font-body)}
@@ -211,6 +218,14 @@ button.b-reset,.b-btn,.b-ibtn,.b-chip{font-family:var(--font-body);cursor:pointe
 .b-bar__l{font:600 12px/14px var(--font-body);color:var(--ink-muted)}
 .b-bar[aria-pressed=true] .b-bar__tr{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
 .b-bar[aria-pressed=true] .b-bar__l{color:var(--ink);font-weight:700}
+/* TimePicker: a big readout and six pills, two to a row so none is left stranded. */
+.b-time{display:flex;flex-direction:column;gap:12px;font-family:var(--font-body)}
+.b-time__big{display:flex;flex-direction:column;align-items:center;gap:4px}
+.b-time__big b{font:700 48px/52px var(--font-display);letter-spacing:-.03em}
+.b-time__big span{font:500 14px/20px var(--font-body);color:var(--ink-muted)}
+.b-time__grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.b-time__grid>.b-chip{width:100%;justify-content:center}
+
 /* StockRing */
 .b-stock{display:inline-flex;align-items:center;gap:12px;font-family:var(--font-body)}
 .b-stock__t{display:flex;flex-direction:column;gap:4px}

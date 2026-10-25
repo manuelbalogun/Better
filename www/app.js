@@ -2,7 +2,7 @@ const {useState,useEffect,useRef,useMemo,useCallback}=React;
 const h2=(t,p,...c)=>{if(p&&p.class!=null){p={...p,className:p.class};delete p.class;}return React.createElement(t,p,...c);};
 const html=htm.bind(h2);
 const B=window.Better;
-const {Button,IconButton,Chip,TextField,Stepper,Switch,Badge,GlassCard,DoseCircle,DoseRow,NextCard,DateStrip,Tabs,NavPill,BarChart,StockRing,Sheet,Toast,Banner,ListRow,EmptyState,Icon,TopBar}=B;
+const {Button,IconButton,Chip,TextField,Stepper,TimePicker,Switch,Badge,GlassCard,DoseCircle,DoseRow,NextCard,DateStrip,Tabs,NavPill,BarChart,StockRing,Sheet,Toast,Banner,ListRow,EmptyState,Icon,TopBar}=B;
 
 const ANCHORS=[{key:'wake',label:'Wake up'},{key:'breakfast',label:'Breakfast'},{key:'lunch',label:'Lunch'},{key:'dinner',label:'Dinner'},{key:'bedtime',label:'Bedtime'}];
 const ALABEL=Object.fromEntries(ANCHORS.map(a=>[a.key,a.label]));
@@ -51,12 +51,23 @@ const daysLeft=(m)=>m.pills==null?null:Math.floor(m.pills/Math.max(1,m.anchors.l
 function seedHistory(meds,s){const doses={};for(let i=28;i>=1;i--){const k=dk(addDays(TODAY,-i));dosesFor({...s,meds},k).forEach(d=>{const h=hash(d.key)%100;
 if(h<84)doses[d.key]={status:'taken',at:s.anchorTimes[d.anchor]+(hash(d.key+'t')%25)};else if(h<90)doses[d.key]={status:'skipped',reason:'Felt unwell'};});}return doses;}
 
+function mkConditions(){return [{id:'c1',name:'Asthma',createdAt:dk(addDays(TODAY,-120))}];}
+// A handful of past episodes so the record has a shape to read.
+function seedEpisodes(conds){if(!conds.length)return [];const c=conds[0].id;
+const E=(d,t,sev,dur,trig,helped)=>({id:'e'+d+'-'+t,condId:c,k:dk(addDays(TODAY,-d)),t,severity:sev,duration:dur,triggers:trig,helped:helped,notes:''});
+return [E(3,1290,'mild','5to15',['Dust'],'Inhaler'),
+ E(9,435,'moderate','15to60',['Cold air','Exercise'],'Inhaler, sat down'),
+ E(16,1140,'mild','1to5',['Strong smell'],'Stepped outside'),
+ E(24,1245,'severe','gt60',['Illness','Poor sleep'],'Inhaler, called the clinic'),
+ E(38,960,'moderate','15to60',['Dust','Pet fur'],'Inhaler')];}
+
 function makeState(scn){const base={onboarded:true,name:'Ayodeji',anchorTimes:{...DEFAULT_TIMES},meds:mkMeds(),doses:{},overrides:{},snoozes:{},
 settings:{snooze:15,sound:true,vibrate:true,followup:true,lowstock:true,showNames:false,theme:'system'},perms:{notif:true,exact:true,battery:true,autostart:true,dnd:true},
-lastExportAt:null,now:485,skipRel:false,notifAsked:0,hist:true};
+lastExportAt:null,now:485,skipRel:false,notifAsked:0,hist:true,conditions:mkConditions(),episodes:[]};
 base.doses=seedHistory(base.meds,base);
+base.episodes=seedEpisodes(base.conditions);
 const T=(id,a,at)=>{base.doses[todayKey+'|'+id+'|'+a]={status:'taken',at};};
-if(scn==='fresh'){return {...base,onboarded:false,name:'',meds:[],doses:{},now:480,hist:false,perms:{notif:false,exact:false,battery:false,autostart:false,dnd:true}};}
+if(scn==='fresh'){return {...base,onboarded:false,name:'',meds:[],doses:{},now:480,hist:false,conditions:[],episodes:[],perms:{notif:false,exact:false,battery:false,autostart:false,dnd:true}};}
 T('m5','wake',394);
 if(scn==='partial'){base.now=500;T('m1','breakfast',486);}
 if(scn==='overdue'){base.now=825;T('m1','breakfast',487);T('m2','breakfast',487);}
@@ -68,6 +79,8 @@ if(scn==='nohist'){base.doses={};base.hist=false;base.meds=base.meds.map(m=>({..
 return base;}
 
 const DEV_SAMPLE=true; // TESTING ONLY - set false before a Play Store release
+// Replaced in the production build with a native file share.
+async function shareText(name,text){try{await NativeIO.exportFile(name,text);return true;}catch(e){return false;}}
 const KEY='better-v1';
 function loadState(){try{const j=localStorage.getItem(KEY);if(j){const s=JSON.parse(j);if(s&&s.meds){s.now=realNow();return s;}}}catch(e){}return {...makeState('fresh'),now:realNow()};}
 function saveState(s){try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}}
@@ -90,15 +103,8 @@ const cx=(...a)=>a.filter(Boolean).join(' ');
 function Hdr({title,onBack,right,sub}){const c=useC();return html`<${TopBar} leading="back" onLeading=${onBack||c.back} title=${title} subtitle=${sub} actions=${right}/>`;}
 function Page({children,pad}){return html`<div class="scroll" style=${pad?{paddingBottom:pad}:null} onScroll=${e=>{const t=e.currentTarget.previousElementSibling;if(t&&t.classList.contains("b-tbw"))t.classList.toggle("is-scrolled",e.currentTarget.scrollTop>4);}}>${children}</div>`;}
 function Label({children}){return html`<div class="sec-label">${children}</div>`;}
-function BigTime({value,sub}){return html`<div class="bigtime"><b>${fmt(value)}</b>${sub?html`<span>${sub}</span>`:null}</div>`;}
-
-function TimeBody({value,onChange,min,max}){const h=Math.floor(value/60),m=value%60;
-const set=(v)=>{if(min!=null&&v<min)v=min;if(max!=null&&v>max)v=max;onChange(((v%1440)+1440)%1440);};
-return html`<div class="b-stack"><${BigTime} value=${value}/>
-<div class="b-row" style=${{justifyContent:'center'}}>
-<${Chip} variant="time" onClick=${()=>set(value-60)}>− 1 h<//><${Chip} variant="time" onClick=${()=>set(value+60)}>+ 1 h<//>
-<${Chip} variant="time" onClick=${()=>set(value-5)}>− 5 min<//><${Chip} variant="time" onClick=${()=>set(value+5)}>+ 5 min<//></div>
-<div class="b-row" style=${{justifyContent:'center'}}><${Chip} selected=${h<12} onClick=${()=>h>=12&&set(value-720)}>am<//><${Chip} selected=${h>=12} onClick=${()=>h<12&&set(value+720)}>pm<//></div></div>`;}
+const TimeBody=(p)=>html`<${TimePicker} ...${p}/>`;
+const BigTime=({value,sub})=>html`<div class="b-time__big"><b>${fmt(value)}</b>${sub?html`<span>${sub}</span>`:null}</div>`;
 
 function TimeSheet({p}){const c=useC();const [v,setV]=useState(p.value);const [err,setErr]=useState('');
 const save=()=>{if(p.validate){const e=p.validate(v);if(e){setErr(e);return;}}p.onSave(v);c.closeSheet();};
@@ -354,6 +360,194 @@ function Wipe(){const c=useC();return html`<div class="screen"><${Hdr} title="De
 <${GlassCard}><ul class="ul"><li>All medications and their history</li><li>Your anchor times and your name</li><li>Every scheduled reminder</li></ul><//><${Button} full variant="danger" onClick=${()=>c.sheet('wipe')}>Delete all my data<//></div><//></div>`;}
 function WipeSheet(){const c=useC();const [t,setT]=useState('');return html`<${Sheet} title="Type DELETE to confirm" onClose=${c.closeSheet} actions=${[html`<${Button} key="d" full variant="danger" disabled=${t!=='DELETE'} onClick=${()=>{c.closeSheet();c.act.wipe();}}>Erase everything<//>`,html`<${Button} key="c" full variant="ghost" onClick=${c.closeSheet}>Cancel<//>`]}><${TextField} label="Confirmation" value=${t} onChange=${setT} placeholder="DELETE"/><//>`;}
 
+// ---------------------------------------------------------------------------
+// Records: an offline log of episodes for a chronic condition (asthma, epilepsy,
+// migraine, sickle cell and the like). It records what happened and when, so the
+// person can show a pattern to their doctor. It is a notebook, not advice: the
+// app never interprets an episode or suggests what to do about one.
+// ---------------------------------------------------------------------------
+
+const TRIGGERS = ['Dust', 'Smoke', 'Cold air', 'Heat', 'Exercise', 'Stress', 'Poor sleep', 'Missed medication',
+  'Strong smell', 'Pollen', 'Pet fur', 'Food', 'Alcohol', 'Flashing lights', 'Illness', 'Dehydration', 'Skipped meal'];
+const COMMON_CONDITIONS = ['Asthma', 'Epilepsy', 'Migraine', 'Sickle cell', 'Eczema', 'Allergies', 'Acid reflux', 'Arthritis'];
+const SEVERITY = [['mild', 'Mild'], ['moderate', 'Moderate'], ['severe', 'Severe']];
+const DURATIONS = [['lt1', 'Under a minute'], ['1to5', '1 to 5 minutes'], ['5to15', '5 to 15 minutes'],
+  ['15to60', '15 to 60 minutes'], ['gt60', 'Over an hour'], ['hours', 'Most of the day']];
+
+const epsOf = (s, condId) => (s.episodes || []).filter(e => e.condId === condId).sort((a, b) => (a.k === b.k ? b.t - a.t : a.k < b.k ? 1 : -1));
+const daysAgo = (k) => Math.round((TODAY - fromKey(k)) / 86400000);
+const agoText = (k) => { const d = daysAgo(k); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d < 7 ? d + ' days ago' : d < 14 ? 'last week' : d < 60 ? Math.round(d / 7) + ' weeks ago' : Math.round(d / 30) + ' months ago'; };
+const sevLabel = (v) => (SEVERITY.find(x => x[0] === v) || [, ''])[1];
+const durLabel = (v) => (DURATIONS.find(x => x[0] === v) || [, ''])[1];
+function topTrigger(list) {
+  const n = {}; list.forEach(e => (e.triggers || []).forEach(t => { n[t] = (n[t] || 0) + 1; }));
+  const k = Object.keys(n).sort((a, b) => n[b] - n[a]); return k.length ? { name: k[0], n: n[k[0]] } : null;
+}
+const inLast = (list, days) => list.filter(e => daysAgo(e.k) <= days).length;
+
+// A plain-text summary a person can hand to a doctor or caregiver.
+function conditionSummary(s, cond) {
+  const list = epsOf(s, cond.id);
+  const L = [];
+  L.push(cond.name + (s.name ? ' — ' + s.name : ''));
+  L.push('Episode record from Better');
+  L.push('');
+  L.push('Episodes logged: ' + list.length + (list.length ? ' (' + inLast(list, 30) + ' in the last 30 days, ' + inLast(list, 90) + ' in the last 90)' : ''));
+  const tt = topTrigger(list);
+  if (tt) L.push('Most noted trigger: ' + tt.name + ' (' + tt.n + ' of ' + list.length + ')');
+  L.push('');
+  if (!list.length) L.push('No episodes logged yet.');
+  list.forEach(e => {
+    const bits = [longDate(e.k) + ', ' + fmt(e.t)];
+    if (e.severity) bits.push(sevLabel(e.severity));
+    if (e.duration) bits.push(durLabel(e.duration));
+    L.push('- ' + bits.join(' · '));
+    if ((e.triggers || []).length) L.push('    Triggers: ' + e.triggers.join(', '));
+    if (e.helped) L.push('    What helped: ' + e.helped);
+    if (e.notes) L.push('    Notes: ' + e.notes);
+  });
+  L.push('');
+  L.push('Kept on the phone in Better. Not a medical record.');
+  return L.join('\n');
+}
+
+function RecordsTab() {
+  const c = useC(); const s = c.s;
+  const conds = s.conditions || [];
+  if (!conds.length) {
+    return html`<div class="screen"><${TopBar} variant="root" title="Records"/><${Page}>
+<${EmptyState} icon="pulse" title="Keep a record of your episodes" body="If you live with something like asthma or epilepsy, log each episode and what set it off. Over time it shows a pattern you can take to your doctor."/>
+<div class="b-stack" style=${{ marginTop: 24 }}><${Button} full size="lg" onClick=${() => c.sheet('addcond')}>Add a condition<//></div>
+<//></div>`;
+  }
+  return html`<div class="screen"><${TopBar} variant="root" title="Records" actions=${[{ icon: 'plus', label: 'Add a condition', onClick: () => c.sheet('addcond') }]}/><${Page}>
+<div class="note" style=${{ margin: '0 0 12px' }}>A record to show your doctor. Better does not give medical advice.</div>
+<div class="b-stack daystack">
+<div class="b-stack">${conds.map(cd => {
+    const list = epsOf(s, cd.id); const last = list[0];
+    return html`<${GlassCard} key=${cd.id} pad=${0}><${ListRow} icon="pulse" title=${cd.name}
+  sub=${last ? 'Last episode ' + agoText(last.k) : 'No episodes logged yet'}
+  onClick=${() => c.go('cond', { id: cd.id })}/><//>`;
+  })}</div>
+<${Button} full size="lg" onClick=${() => c.go('logep', { condId: conds[0].id })}>Log an episode<//>
+</div><//></div>`;
+}
+
+function CondDetail({ p }) {
+  const c = useC(); const s = c.s;
+  const cd = (s.conditions || []).find(x => x.id === p.id);
+  if (!cd) return html`<div class="screen"><${Hdr} title="Condition"/></div>`;
+  const list = epsOf(s, cd.id); const tt = topTrigger(list);
+  const months = [];
+  list.forEach(e => { const m = e.k.slice(0, 7); const g = months.find(x => x.m === m); if (g) g.rows.push(e); else months.push({ m, rows: [e] }); });
+  const monthName = (m) => { const d = fromKey(m + '-01'); return MON[d.getMonth()] + ' ' + d.getFullYear(); };
+  return html`<div class="screen"><${Hdr} title=${cd.name}/><${Page}><div class="b-stack daystack">
+<${GlassCard}><div class="stat"><b>${list.length}</b><span>${list.length === 1 ? 'episode logged' : 'episodes logged'}</span></div>
+<div class="b-stack" style=${{ marginTop: 16 }}>
+<div class="kv"><span>Last 30 days</span><b>${inLast(list, 30)}</b></div>
+<div class="kv"><span>Last episode</span><b>${list.length ? agoText(list[0].k) : 'None yet'}</b></div>
+${tt && html`<div class="kv"><span>Most noted trigger</span><b>${tt.name}</b></div>`}
+</div><//>
+<${Button} full size="lg" onClick=${() => c.go('logep', { condId: cd.id })}>Log an episode<//>
+${list.length ? months.map(g => html`<div key=${g.m} class="b-stack"><${Label}>${monthName(g.m)}<//>
+${g.rows.map(e => html`<${GlassCard} key=${e.id} pad=${0}><${ListRow} icon="pulse"
+  title=${longDate(e.k) + ' · ' + fmt(e.t)}
+  sub=${[sevLabel(e.severity), durLabel(e.duration), (e.triggers || []).join(', ')].filter(Boolean).join(' · ') || 'No details'}
+  onClick=${() => c.sheet('epdetail', { id: e.id })}/><//>`)}</div>`)
+      : html`<${GlassCard}><div class="note">Nothing logged yet. Log the next episode while it is fresh.</div><//>`}
+<div class="b-stack"><${Label}>This condition<//>
+<${GlassCard} pad=${0}>
+<${ListRow} icon="upload" title="Share a summary" sub="A plain list of episodes for your doctor" onClick=${() => c.act.shareCondition(cd.id)}/>
+<${ListRow} icon="edit" title="Rename" sub=${cd.name} onClick=${() => c.sheet('addcond', { id: cd.id })}/>
+<${ListRow} icon="trash" tone="danger" title="Delete this condition" sub="Removes it and every episode logged under it" onClick=${() => c.sheet('delcond', { id: cd.id })}/>
+<//></div>
+</div><//></div>`;
+}
+
+function LogEpisode({ p }) {
+  const c = useC(); const s = c.s;
+  const conds = s.conditions || [];
+  const existing = p.id ? (s.episodes || []).find(e => e.id === p.id) : null;
+  const [f, setF] = useState(() => existing ? { ...existing, custom: '' } : {
+    condId: p.condId || (conds[0] && conds[0].id), k: todayKey, t: Math.round(s.now / 5) * 5,
+    severity: '', duration: '', triggers: [], helped: '', notes: '', custom: ''
+  });
+  const u = (patch) => setF({ ...f, ...patch });
+  const togg = (t) => u({ triggers: f.triggers.indexOf(t) < 0 ? f.triggers.concat([t]) : f.triggers.filter(x => x !== t) });
+  const dayOpts = [0, 1, 2].map(n => ({ k: dk(addDays(TODAY, -n)), label: n === 0 ? 'Today' : n === 1 ? 'Yesterday' : longDate(dk(addDays(TODAY, -2))) }));
+  const ok = !!f.condId;
+  return html`<div class="screen"><${TopBar} leading="close" onLeading=${c.back} title=${existing ? 'Edit episode' : 'Log an episode'}/><${Page}>
+<div class="fstack">
+${conds.length > 1 && html`<div class="b-stack"><${Label}>Condition<//><div class="b-row">${conds.map(cd => html`<${Chip} key=${cd.id} selected=${f.condId === cd.id} onClick=${() => u({ condId: cd.id })}>${cd.name}<//>`)}</div></div>`}
+<div class="b-stack"><${Label}>When<//>
+<div class="b-row">${dayOpts.map(d => html`<${Chip} key=${d.k} selected=${f.k === d.k} onClick=${() => u({ k: d.k })}>${d.label}<//>`)}</div>
+<${GlassCard}><${TimeBody} value=${f.t} onChange=${(v) => u({ t: v })}/><//>
+</div>
+<div class="b-stack"><${Label}>How bad was it<//><div class="b-row">${SEVERITY.map(([k, l]) => html`<${Chip} key=${k} selected=${f.severity === k} onClick=${() => u({ severity: f.severity === k ? '' : k })}>${l}<//>`)}</div></div>
+<div class="b-stack"><${Label}>How long it lasted<//><div class="b-row">${DURATIONS.map(([k, l]) => html`<${Chip} key=${k} selected=${f.duration === k} onClick=${() => u({ duration: f.duration === k ? '' : k })}>${l}<//>`)}</div></div>
+<div class="b-stack"><${Label}>What set it off<//>
+<div class="b-row">${TRIGGERS.map(t => html`<${Chip} key=${t} selected=${f.triggers.indexOf(t) >= 0} onClick=${() => togg(t)}>${t}<//>`)}</div>
+${f.triggers.filter(t => TRIGGERS.indexOf(t) < 0).length ? html`<div class="b-row" style=${{ marginTop: 12 }}>${f.triggers.filter(t => TRIGGERS.indexOf(t) < 0).map(t => html`<${Chip} key=${t} selected onClick=${() => togg(t)}>${t}<//>`)}</div>` : null}
+<div style=${{ marginTop: 12 }}><${TextField} label="Something else" placeholder="Type a trigger, then add it" value=${f.custom} onChange=${(v) => u({ custom: v })}/></div>
+${f.custom.trim() ? html`<div style=${{ marginTop: 12 }}><${Button} variant="secondary" onClick=${() => { const t = f.custom.trim(); if (t && f.triggers.indexOf(t) < 0) u({ triggers: f.triggers.concat([t]), custom: '' }); }}>Add "${f.custom.trim()}"<//></div>` : null}
+</div>
+<div class="b-stack"><${Label}>What helped<//><${TextField} placeholder="Inhaler, rest, a dark room" value=${f.helped} onChange=${(v) => u({ helped: v })} ariaLabel="What helped"/></div>
+<div class="b-stack"><${Label}>Anything else<//><${TextField} placeholder="Notes for your doctor" value=${f.notes} onChange=${(v) => u({ notes: v })} ariaLabel="Notes"/></div>
+</div><//>
+<div class="foot"><${Button} full size="lg" disabled=${!ok} onClick=${() => c.act.saveEpisode({ ...f, id: existing ? existing.id : null })}>${existing ? 'Save changes' : 'Save episode'}<//></div>
+</div>`;
+}
+
+function EpisodeSheet({ p }) {
+  const c = useC(); const s = c.s;
+  const e = (s.episodes || []).find(x => x.id === p.id);
+  if (!e) return null;
+  const cd = (s.conditions || []).find(x => x.id === e.condId);
+  return html`<${Sheet} title=${longDate(e.k) + ' · ' + fmt(e.t)} onClose=${c.closeSheet}
+actions=${[html`<${Button} key="a" full variant="secondary" onClick=${() => { c.closeSheet(); c.go('logep', { id: e.id }); }}>Edit<//>`,
+  html`<${Button} key="b" full variant="danger" onClick=${() => { c.closeSheet(); c.sheet('delep', { id: e.id }); }}>Delete<//>`]}>
+<div class="b-stack">
+${cd && html`<div class="kv"><span>Condition</span><b>${cd.name}</b></div>`}
+${e.severity && html`<div class="kv"><span>How bad</span><b>${sevLabel(e.severity)}</b></div>`}
+${e.duration && html`<div class="kv"><span>How long</span><b>${durLabel(e.duration)}</b></div>`}
+${(e.triggers || []).length ? html`<div class="kv"><span>Triggers</span><b>${e.triggers.join(', ')}</b></div>` : null}
+${e.helped && html`<div class="kv"><span>What helped</span><b>${e.helped}</b></div>`}
+${e.notes && html`<div class="kv"><span>Notes</span><b>${e.notes}</b></div>`}
+</div><//>`;
+}
+
+function AddCondSheet({ p }) {
+  const c = useC();
+  const existing = p && p.id ? (c.s.conditions || []).find(x => x.id === p.id) : null;
+  const [v, setV] = useState(existing ? existing.name : '');
+  const save = () => { const n = v.trim(); if (!n) return; c.closeSheet(); existing ? c.act.updateCondition(existing.id, { name: n }) : c.act.addCondition(n); };
+  return html`<${Sheet} title=${existing ? 'Rename condition' : 'Add a condition'} onClose=${c.closeSheet}
+actions=${[html`<${Button} key="a" full disabled=${!v.trim()} onClick=${save}>${existing ? 'Save' : 'Add condition'}<//>`,
+  html`<${Button} key="b" full variant="ghost" onClick=${c.closeSheet}>Cancel<//>`]}>
+<div class="b-stack">
+<${TextField} label="Condition" placeholder="Asthma" value=${v} onChange=${setV}/>
+${!existing && html`<div class="b-row">${COMMON_CONDITIONS.map(n => html`<${Chip} key=${n} selected=${v === n} onClick=${() => setV(n)}>${n}<//>`)}</div>`}
+<div class="note">Only a label for your own record. Better does not diagnose anything.</div>
+</div><//>`;
+}
+
+function DelCondSheet({ p }) {
+  const c = useC(); const cd = (c.s.conditions || []).find(x => x.id === p.id);
+  const n = cd ? epsOf(c.s, cd.id).length : 0;
+  return html`<${Sheet} title=${'Delete ' + (cd ? cd.name : 'this condition') + '?'} onClose=${c.closeSheet}
+actions=${[html`<${Button} key="a" full variant="danger" onClick=${() => { c.closeSheet(); c.back(); c.act.deleteCondition(p.id); }}>Delete<//>`,
+  html`<${Button} key="b" full variant="ghost" onClick=${c.closeSheet}>Keep it<//>`]}>
+<div class="note">${n ? n + (n === 1 ? ' episode' : ' episodes') + ' logged under it will be deleted too. This cannot be undone.' : 'This cannot be undone.'}</div><//>`;
+}
+
+function DelEpSheet({ p }) {
+  const c = useC();
+  return html`<${Sheet} title="Delete this episode?" onClose=${c.closeSheet}
+actions=${[html`<${Button} key="a" full variant="danger" onClick=${() => { c.closeSheet(); c.act.deleteEpisode(p.id); }}>Delete<//>`,
+  html`<${Button} key="b" full variant="ghost" onClick=${c.closeSheet}>Keep it<//>`]}>
+<div class="note">The record of this episode is removed from this phone.</div><//>`;
+}
+
 function AnchorRows(){const c=useC();const s=c.s;
 const edit=(a)=>{const i=AIDX[a.key];const prev=i>0?s.anchorTimes[ANCHORS[i-1].key]:-1,next=i<4?s.anchorTimes[ANCHORS[i+1].key]:1440;
 c.sheet('time',{title:a.label+' time',value:s.anchorTimes[a.key],note:'Reminders follow this time.',validate:(v)=>v<=prev?a.label+' must be after '+ALABEL[ANCHORS[i-1].key]:v>=next?a.label+' must be before '+ALABEL[ANCHORS[i+1].key]:'',onSave:(v)=>c.act.setAnchor(a.key,v)});};
@@ -441,6 +635,16 @@ restore:(data)=>{setS(p=>({...makeState('fresh'),...data.state,onboarded:true,pe
 exportBackup:async()=>{const st={...s};delete st.now;delete st.perms;delete st.notifAsked;const name='Better-backup-'+todayKey+'.json';await NativeIO.exportFile(name,JSON.stringify({app:'Better',v:1,at:new Date().toISOString(),state:st}));setS(p=>({...p,lastExportAt:MON[TODAY.getMonth()]+' '+TODAY.getDate()}));},
 askNotif:async()=>{const ok=await NativeIO.requestNotif();if(ok)setPerm('notif',true);else{setS(p=>({...p,perms:{...p.perms,notif:false},notifAsked:p.notifAsked+1}));if(s.notifAsked>=1)NativeIO.open('notif');}},
 fix:async(key)=>{await NativeIO.open(key);if(key==='autostart'||key==='dnd')setPerm(key,true);},
+addCondition:(name)=>{const id='c'+Date.now();setS(p=>({...p,conditions:(p.conditions||[]).concat([{id,name,createdAt:todayKey}])}));toast('Condition added');},
+updateCondition:(id,patch)=>{setS(p=>({...p,conditions:(p.conditions||[]).map(c=>c.id===id?{...c,...patch}:c)}));toast('Saved');},
+deleteCondition:(id)=>{setS(p=>({...p,conditions:(p.conditions||[]).filter(c=>c.id!==id),episodes:(p.episodes||[]).filter(e=>e.condId!==id)}));toast('Condition deleted');},
+saveEpisode:(ep)=>{const id=ep.id||('e'+Date.now());const rec={id,condId:ep.condId,k:ep.k,t:ep.t,severity:ep.severity||'',duration:ep.duration||'',triggers:ep.triggers||[],helped:(ep.helped||'').trim(),notes:(ep.notes||'').trim()};
+ setS(p=>({...p,episodes:(p.episodes||[]).some(e=>e.id===id)?(p.episodes||[]).map(e=>e.id===id?rec:e):(p.episodes||[]).concat([rec])}));
+ back();toast(ep.id?'Episode updated':'Episode logged');},
+deleteEpisode:(id)=>{setS(p=>({...p,episodes:(p.episodes||[]).filter(e=>e.id!==id)}));toast('Episode deleted');},
+shareCondition:(id)=>{const cd=(s.conditions||[]).find(c=>c.id===id);if(!cd)return;const text=conditionSummary(s,cd);
+ const name=cd.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'-episodes-'+todayKey+'.txt';
+ shareText(name,text).then(ok=>toast(ok?'Summary ready to share':'Could not share the summary'));},
 loadSample:()=>{setS(p=>({...makeState('morning'),settings:p.settings,name:p.name||'Ayodeji'}));setNav({tab:'today',stack:[],ob:'A1'});setUiS({sel:todayKey,tab:'up',wk:0,hr:'week',hsel:null});toast('Sample data loaded');},
 wipe:()=>{setSS(makeState('fresh'));setNav({tab:'today',stack:[],ob:'A1'});setUiS({sel:todayKey,tab:'up',wk:0,hr:'week',hsel:null});},
 finishOb:()=>{setS(p=>({...p,onboarded:true}));setNav(n=>({...n,tab:'today',stack:[]}));},
@@ -457,11 +661,11 @@ const theme=s.settings.theme==='system'?(sysDark?'dusk':'dawn'):s.settings.theme
 const top=nav.stack[nav.stack.length-1];
 let screen;
 if(top){const P=top.params;const M={add:AddFlow,med:MedDetail,edit:EditMed};
-screen=top.id==='add'?html`<${AddFlow}/>`:top.id==='med'?html`<${MedDetail} p=${P}/>`:top.id==='edit'?html`<${EditMed} p=${P}/>`:top.id==='myday'?html`<${MyDay}/>`:top.id==='notifs'?html`<${Notifs}/>`:top.id==='reliability'?html`<${ReliabilityScreen}/>`:top.id==='backup'?html`<${Backup}/>`:top.id==='appearance'?html`<${Appearance}/>`:top.id==='name'?html`<${NameScreen}/>`:top.id==='about'?html`<${About}/>`:top.id==='wipe'?html`<${Wipe}/>`:null;}
+screen=top.id==='add'?html`<${AddFlow}/>`:top.id==='med'?html`<${MedDetail} p=${P}/>`:top.id==='edit'?html`<${EditMed} p=${P}/>`:top.id==='cond'?html`<${CondDetail} p=${P}/>`:top.id==='logep'?html`<${LogEpisode} p=${P}/>`:top.id==='myday'?html`<${MyDay}/>`:top.id==='notifs'?html`<${Notifs}/>`:top.id==='reliability'?html`<${ReliabilityScreen}/>`:top.id==='backup'?html`<${Backup}/>`:top.id==='appearance'?html`<${Appearance}/>`:top.id==='name'?html`<${NameScreen}/>`:top.id==='about'?html`<${About}/>`:top.id==='wipe'?html`<${Wipe}/>`:null;}
 else if(!s.onboarded)screen=html`<${Onboarding}/>`;
-else screen=nav.tab==='today'?html`<${Today}/>`:nav.tab==='history'?html`<${History}/>`:nav.tab==='meds'?html`<${MedsTab}/>`:html`<${SettingsHome}/>`;
+else screen=nav.tab==='today'?html`<${Today}/>`:nav.tab==='history'?html`<${History}/>`:nav.tab==='meds'?html`<${MedsTab}/>`:nav.tab==='records'?html`<${RecordsTab}/>`:html`<${SettingsHome}/>`;
 const showNav=!top&&s.onboarded;
-let sh=null;if(sheetS){const p=sheetS.params;const m={dose:DoseSheet,late:LateSheet,logLate:LogLateSheet,time:TimeSheet,dup:DupSheet,pause:PauseSheet,delete:DeleteSheet,refill:RefillSheet,sys:SysSheet,filepick:FilePick,restore:RestoreSheet,wipe:WipeSheet,discard:DiscardSheet};
+let sh=null;if(sheetS){const p=sheetS.params;const m={epdetail:EpisodeSheet,addcond:AddCondSheet,delcond:DelCondSheet,delep:DelEpSheet,dose:DoseSheet,late:LateSheet,logLate:LogLateSheet,time:TimeSheet,dup:DupSheet,pause:PauseSheet,delete:DeleteSheet,refill:RefillSheet,sys:SysSheet,filepick:FilePick,restore:RestoreSheet,wipe:WipeSheet,discard:DiscardSheet};
 if(sheetS.id==='sysnotif')sh=html`<${Sheet} title="Allow Better to send you notifications?" onClose=${closeSheet} actions=${[html`<${Button} key="a" full onClick=${()=>{act.setPerm('notif',true);closeSheet();}}>Allow<//>`,html`<${Button} key="b" full variant="secondary" onClick=${()=>{setS(p=>({...p,notifAsked:p.notifAsked+1}));closeSheet();}}>Don’t allow<//>`]}><div class="note">This is a stand-in for the Android permission dialog.</div><//>`;
 else{const C=m[sheetS.id];sh=html`<${C} key=${sheetS.id+JSON.stringify(p)} p=${p}/>`;}}
 /* ---- production shell ---- */
@@ -508,7 +712,7 @@ useEffect(()=>{ // system bar icons + background follow the theme
 },[theme]);
 return html`<${Ctx.Provider} value=${ctx}><div class="phone" data-theme=${theme}>
 <div class="body">${screen}</div>
-${showNav&&html`<div class="navwrap"><${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>go('add')} items=${[{key:'today',icon:'home',text:String(TODAY.getDate()).padStart(2,'0'),label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div>`}
+${showNav&&html`<div class="navwrap"><${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>go('add')} items=${[{key:'today',icon:'home',text:String(TODAY.getDate()).padStart(2,'0'),label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'records',icon:'pulse',label:'Records'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div>`}
 ${toastS&&html`<div class="toastwrap"><${Toast} message=${toastS.msg} action=${toastS.action} onAction=${()=>{toastS.onAction&&toastS.onAction();setToastS(null);}}/></div>`}
 ${sh}
 </div><//>`;}
