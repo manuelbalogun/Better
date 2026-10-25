@@ -139,7 +139,7 @@ else body=html`<div class="b-stack daystack">
 ${nb&&html`<${NextCard} anchor=${nb.anchor} anchorLabel=${ALABEL[nb.anchor]} state=${nb.late?'late':'upcoming'} time=${nb.snoozed&&nb.snoozeUntil?'Snoozed to '+fmt(nb.snoozeUntil):nb.late?'Was '+fmt(nb.time):fmt(nb.time)} meds=${nb.items.map(i=>i.d.med.name+' '+i.d.med.strength).join(', ')} takenCount=${nb.takenCount} onTake=${()=>c.act.takeBlock(nb.anchor)} onLate=${()=>c.sheet('late',{anchor:nb.anchor})} onSnooze=${()=>c.act.snooze(nb.anchor)}/>`}
 ${groups.map(g=>html`<div key=${g.a} class="b-stack"><${Label}>${ALABEL[g.a]} · ${fmt(eff(s,sel,g.a))}<//>${g.rows.map(d=>html`<${Row} key=${d.key} d=${d} k=${sel}/>`)}</div>`)}</div>`;
 return html`<div class="screen"><${TopBar} variant="root" title=${GREET(s.now)+(s.name?', '+s.name:'')} actions=${[{icon:'bell',label:'Notifications',onClick:()=>c.go('notifs'),dot:!!bn}]}/><${Page}>
-<div class="note" style=${{margin:'0 0 12px'}}>${longDate(sel)}${sel===todayKey?' · today':''}</div>
+<div class="note" style=${{margin:'0 0 12px'}}>${longDate(sel)}${sel===todayKey?' · Today':''}</div>
 <div class="weekbar"><${IconButton} icon="chevron-left" label="Previous week" variant="ghost" onClick=${()=>setUi({wk:wk-1})}/><span>${wk===0?'This week':wk<0?(-wk)+(wk===-1?' week ago':' weeks ago'):wk+(wk===1?' week ahead':' weeks ahead')}</span><${IconButton} icon="chevron-right" label="Next week" variant="ghost" onClick=${()=>setUi({wk:wk+1})}/></div>
 <${DateStrip} days=${days} onSelect=${(i)=>setUi({sel:days[i].k})}/>
 ${bn&&html`<div style=${{marginTop:12}}><${Banner} tone=${bn.tone} title=${bn.title} body=${bn.body} action=${bn.action} onAction=${()=>c.go('reliability')}/></div>`}
@@ -416,7 +416,7 @@ function RecordsTab() {
   const conds = s.conditions || [];
   if (!conds.length) {
     return html`<div class="screen"><${TopBar} variant="root" title="Records"/><${Page}>
-<${EmptyState} icon="pulse" title="Keep a record of your episodes" body="If you live with something like asthma or epilepsy, log each episode and what set it off. Over time it shows a pattern you can take to your doctor."/>
+<${EmptyState} icon="pulse" title="Keep a record of your episodes" body="Log each episode and what set it off, then show your doctor the pattern."/>
 <div class="b-stack" style=${{ marginTop: 24 }}><${Button} full size="lg" onClick=${() => c.sheet('addcond')}>Add a condition<//></div>
 <//></div>`;
   }
