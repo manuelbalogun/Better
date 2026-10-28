@@ -1,9 +1,9 @@
 workflows:
   better-android-debug:
     name: Better Android (debug APK)
-    # Android needs no macOS. Linux machines are a much bigger pool, so builds
-    # start sooner. Swap back to mac_mini_m2 only if you ever add an iOS build.
-    instance_type: linux_x2
+    # The free plan only grants macOS M2 minutes, so this stays mac_mini_m2 even
+    # though an Android build needs no macOS. linux_x2 is a paid instance type.
+    instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
       node: 22
