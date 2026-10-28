@@ -9,7 +9,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
   padding-right:max(env(safe-area-inset-right,0px),var(--safe-area-inset-right,0px))}
 .sbar{display:none}
 .navwrap{bottom:calc(16px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}
-.addmenu{bottom:calc(156px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)));right:calc(16px + max(env(safe-area-inset-right,0px),var(--safe-area-inset-right,0px)))}
+/* The add menu deliberately has no override here. It hangs off the nav row, which already
+   clears the bottom inset via .navwrap above, so anything set here would push it off that
+   anchor twice over. Positioning for it lives in app.css and nowhere else. */
 .toastwrap{top:calc(8px + max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px)))}
 .foot{padding-bottom:calc(24px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}
 .scroll{padding-bottom:calc(120px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}

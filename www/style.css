@@ -224,15 +224,16 @@ button.b-reset,.b-btn,.b-ibtn,.b-chip{font-family:var(--font-body);cursor:pointe
 .b-nav button[aria-current=page]{background:var(--nav-active);color:var(--on-nav-active);padding:0 18px 0 14px}
 /* On a narrow phone the label will not fit beside five destinations, so the
    selected one keeps its white pill but shows only its icon. */
+.b-nav__add{position:absolute;right:0;bottom:calc(100% + 12px);width:56px;height:56px;border-radius:50%;border:0;background:var(--accent-solid);color:var(--on-accent-solid);box-shadow:var(--shadow-float);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+/* The base rule above must stay ABOVE this query. Both set width and height at the same
+   specificity, so the later one wins: with it below, the query never shrank the button. */
 @container navbar (max-width:336px){
   .b-nav__lbl{display:none}
   .b-nav button[aria-current=page]{padding:0}
   .b-nav__add{width:52px;height:52px}
 }
 .b-nav button[aria-current=page] :is(.b-icon,.b-nav__num){opacity:1}
-.b-nav__lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.b-nav__add{position:absolute;right:0;bottom:calc(100% + 12px);width:56px;height:56px;border-radius:50%;border:0;background:var(--accent-solid);color:var(--on-accent-solid);box-shadow:var(--shadow-float);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
-/* Day circles */
+.b-nav__lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}/* Day circles */
 .b-strip{display:flex;gap:4px;justify-content:space-between}
 .b-day{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:44px;min-height:84px;padding:6px 2px;border-radius:var(--radius-pill);border:0;background:transparent;color:var(--ink);cursor:pointer;font-family:var(--font-body)}
 .b-day small{font:700 12px/14px var(--font-body);color:var(--ink-muted);letter-spacing:-.03em}
@@ -338,7 +339,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
   padding-right:max(env(safe-area-inset-right,0px),var(--safe-area-inset-right,0px))}
 .sbar{display:none}
 .navwrap{bottom:calc(16px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}
-.addmenu{bottom:calc(156px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)));right:calc(16px + max(env(safe-area-inset-right,0px),var(--safe-area-inset-right,0px)))}
+/* The add menu deliberately has no override here. It hangs off the nav row, which already
+   clears the bottom inset via .navwrap above, so anything set here would push it off that
+   anchor twice over. Positioning for it lives in app.css and nowhere else. */
 .toastwrap{top:calc(8px + max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px)))}
 .foot{padding-bottom:calc(24px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}
 .scroll{padding-bottom:calc(120px + max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px)))}
