@@ -56,7 +56,13 @@ body{background:var(--pg-bg);color:var(--pg-fg);font-family:'Google Sans',system
    so it reads as the thing the card came from. */
 .navwrap.is-raised{z-index:7}
 .addscrim{position:absolute;inset:0;background:var(--scrim);z-index:6;animation:b-fade .12s ease-out both}
-.addmenu{position:absolute;right:16px;bottom:156px;z-index:8;min-width:224px;display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:var(--radius-lg);background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-float);animation:b-pop .14s cubic-bezier(.2,.8,.3,1) both}
+/* The nav row (pill + floating add button) shrink-wraps and centres; .navstack wraps it so
+   the add menu can hang off its right edge. right:0 therefore lines the menu up with both the
+   add button and the end of the nav pill at any width, instead of guessing a phone offset.
+   It clears the add button by its height plus 12px above and below. */
+.navstack{position:relative;display:inline-flex;flex-direction:column;align-items:flex-end;max-width:100%}
+.addmenu{--fab:56px;position:absolute;right:0;bottom:calc(100% + 24px + var(--fab));z-index:8;max-width:100%;display:flex;flex-direction:column;gap:4px;padding:8px;border-radius:var(--radius-lg);background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-float);animation:b-pop .14s cubic-bezier(.2,.8,.3,1) both}
+@container navbar (max-width:336px){.addmenu{--fab:52px}}
 .addmenu button{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 12px;border:0;border-radius:12px;background:transparent;color:var(--ink);font:600 15px/22px var(--font-body);font-family:var(--font-body);text-align:left;cursor:pointer}
 .addmenu button:active{background:var(--track)}
 @keyframes b-pop{from{opacity:0;translate:0 10px}}
@@ -66,11 +72,26 @@ body{background:var(--pg-bg);color:var(--pg-fg);font-family:'Google Sans',system
 .toastwrap{position:absolute;left:16px;right:16px;top:48px;display:flex;justify-content:center;z-index:30}
 .phone .b-scrim--fixed{position:absolute;z-index:40}
 .phone .b-sheet{max-height:92%;overflow-y:auto}
-.ncard{position:absolute;top:44px;left:10px;right:10px;z-index:60;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow-float);padding:10px 12px 8px}
-.ncard__h{display:flex;align-items:center;justify-content:space-between;font:700 12px/16px var(--font-body);color:var(--ink-muted)}.ncard__app{display:inline-flex;gap:6px;align-items:center}
-.ncard__h button{width:36px;height:36px;border:0;background:transparent;color:var(--ink);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.ncard__b{display:block;width:100%;text-align:left;background:transparent;border:0;padding:2px 0 8px;color:var(--ink);cursor:pointer;font-family:var(--font-body)}.ncard__b b{display:block;font:700 16px/22px var(--font-body)}.ncard__b span{font:500 14px/20px var(--font-body);color:var(--ink-muted)}
-.ncard__a{display:flex;gap:8px;border-top:1px solid var(--line);padding-top:4px}.ncard__a button{min-height:48px;padding:0 14px;border:0;background:transparent;color:var(--ink);font:700 15px/20px var(--font-body);cursor:pointer;text-decoration:underline}
+.ncard{position:absolute;top:44px;left:10px;right:10px;z-index:60;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow-float);padding:12px;animation:nc-in .24s cubic-bezier(.2,.8,.3,1) both}
+@keyframes nc-in{from{opacity:0;translate:0 -14px;scale:.98}}
+@media (prefers-reduced-motion:reduce){.ncard{animation:none}}
+.ncard__h{display:flex;align-items:center;justify-content:space-between;font:700 12px/16px var(--font-body);color:var(--ink-muted)}
+.ncard__app{display:inline-flex;gap:6px;align-items:center}
+.ncard__logo{display:flex;margin-right:2px}
+.ncard__app i{font-style:normal;opacity:.55}
+.ncard__h button{width:36px;height:36px;margin:-6px -6px -6px 0;border:0;background:transparent;color:var(--ink-muted);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ncard__b{display:block;width:100%;text-align:left;background:transparent;border:0;padding:12px 0 0;color:var(--ink);cursor:pointer;font-family:var(--font-body)}
+.ncard__b b{display:block;font:700 16px/22px var(--font-body);letter-spacing:-.03em}
+/* Title and its line are one text block, so 4px, not the 12px floor. */
+.ncard__b span{display:block;margin-top:4px;font:500 14px/20px var(--font-body);color:var(--ink-muted)}
+/* Two real buttons share the row; a third (Skip) is tertiary and sits centred beneath them. */
+.ncard__a{display:grid;gap:12px;margin-top:12px}
+.ncard__a[data-n="1"]{grid-template-columns:1fr}
+.ncard__a[data-n="2"],.ncard__a[data-n="3"]{grid-template-columns:1fr 1fr}
+.ncard__a[data-n="3"]>:nth-child(3){grid-column:1/-1;justify-self:center}
+/* Take now gets the same blue as the one on Today, so the two read as the same action. */
+.ncard .b-btn--primary{background:var(--accent-strong);color:var(--on-accent-strong)}
+.ncard__a .b-btn{padding:0 16px}
 .note+.b-stack,.b-sheet .note{margin:0}
 .panel{flex:none;width:360px;background:var(--pg-card);border:1px solid var(--pg-line);border-radius:24px;padding:20px;max-height:844px;overflow-y:auto;font-family:'Google Sans',system-ui,sans-serif;color:var(--pg-fg)}
 .panel h2{font:700 22px/26px 'Google Sans',sans-serif;margin:0 0 4px;letter-spacing:-.03em}.panel h3{font:700 12px/16px 'Google Sans',sans-serif;text-transform:uppercase;letter-spacing:-.03em;color:var(--pg-muted);margin:18px 0 8px}

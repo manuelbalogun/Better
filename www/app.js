@@ -584,14 +584,18 @@ for(let off=0;off<2;off++){const k=dk(addDays(TODAY,off));const ds=dosesFor(s,k)
 
 function NotifCard({n}){const c=useC();const s=c.s;const nb=nextBlock(s);const names=s.settings.showNames;
 let title,body,acts=[];
-if(n.kind==='dose'&&nb){title='Time for '+ALABEL[nb.anchor].toLowerCase();body=names?nb.items.map(i=>i.d.med.name).join(', '):nb.items.length+' medication'+(nb.items.length>1?'s':'')+' · '+fmt(nb.time);acts=[['Take all',()=>c.act.takeBlock(nb.anchor)],['Snooze',()=>c.act.snooze(nb.anchor)]];}
-else if(n.kind==='followup'&&nb){title=names?'Still need to take '+nb.items[0].d.med.name+'?':'Still need to take your '+ALABEL[nb.anchor].toLowerCase()+' meds?';body='Tap to open Today';acts=[['Take',()=>c.act.takeBlock(nb.anchor)]];}
-else if(n.kind==='low'){const m=s.meds.filter(x=>!x.deleted&&stockInfo(x)&&(stockInfo(x).low||stockInfo(x).out))[0]||s.meds[0];title=(m?m.name:'Your medicine')+(m&&m.pills<=0?' is out of pills':' is running low');body=m?m.pills+' left · about '+Math.max(0,daysLeft(m))+' days':'';acts=[['Refill',()=>c.sheet('refill',{id:m&&m.id})]];}
+// Every dose reminder offers the same three, in the order the native notification lists them.
+const doseActs=(a)=>[['Take now','primary',()=>c.act.takeBlock(a)],['Snooze','secondary',()=>c.act.snooze(a)],['Skip','ghost',()=>c.act.skipBlock(a)]];
+if(n.kind==='dose'&&nb){title='Time for '+ALABEL[nb.anchor].toLowerCase();body=names?nb.items.map(i=>i.d.med.name).join(', '):nb.items.length+' medication'+(nb.items.length>1?'s':'')+' · '+fmt(nb.time);acts=doseActs(nb.anchor);}
+else if(n.kind==='followup'&&nb){title=names?'Still need to take '+nb.items[0].d.med.name+'?':'Still need to take your '+ALABEL[nb.anchor].toLowerCase()+' meds?';body='Due at '+fmt(nb.time);acts=doseActs(nb.anchor);}
+else if(n.kind==='low'){const m=s.meds.filter(x=>!x.deleted&&stockInfo(x)&&(stockInfo(x).low||stockInfo(x).out))[0]||s.meds[0];title=(m?m.name:'Your medicine')+(m&&m.pills<=0?' is out of pills':' is running low');body=m?m.pills+' left · about '+Math.max(0,daysLeft(m))+' days':'';acts=[['Refill','primary',()=>c.sheet('refill',{id:m&&m.id})]];}
 else if(n.kind==='reliab'){title='Reminders may be late';body='Better lost a setting. Tap to fix.';}
 else if(n.kind==='test'){title='Test reminder';body='Reminders are working on this phone.';}
 else{title='Nothing due';body='All doses are taken or missed for now.';}
 const open=()=>{c.setNotif(null);if(n.kind==='reliab'){c.go('reliability');}else if(n.kind==='low'){c.tab('meds');}else{c.tab('today');c.setUi({sel:todayKey,tab:'up'});}};
-return html`<div class="ncard" role="alert"><div class="ncard__h"><span class="ncard__app"><${Icon} name="pill" size=${14}/> Better · now</span><button type="button" aria-label="Dismiss" onClick=${()=>c.setNotif(null)}><${Icon} name="close" size=${16}/></button></div><button type="button" class="ncard__b" onClick=${open}><b>${title}</b><span>${body}</span></button>${acts.length?html`<div class="ncard__a">${acts.map(([l,f])=>html`<button key=${l} type="button" onClick=${()=>{f();c.setNotif(null);}}>${l}</button>`)}</div>`:null}</div>`;}
+// The mark is the same dose circle the splash and the launcher icon use, so it is hidden from
+// screen readers here: the word "Better" beside it already names the app.
+return html`<div class="ncard" role="alert"><div class="ncard__h"><span class="ncard__app"><span class="ncard__logo" aria-hidden="true"><${DoseCircle} taken=${2} total=${3} size=${18}/></span>Better<i>·</i>now</span><button type="button" aria-label="Dismiss" onClick=${()=>c.setNotif(null)}><${Icon} name="close" size=${16}/></button></div><button type="button" class="ncard__b" onClick=${open}><b>${title}</b>${body?html`<span>${body}</span>`:null}</button>${acts.length?html`<div class="ncard__a" data-n=${acts.length}>${acts.map(([l,v,f])=>html`<${Button} key=${l} variant=${v} onClick=${()=>{f();c.setNotif(null);}}>${l}<//>`)}</div>`:null}</div>`;}
 
 function App(){
 const [s,setSS]=useState(loadState);const setS=(f)=>setSS(p=>typeof f==='function'?f(p):f);
@@ -620,6 +624,9 @@ take:(d)=>{setS(p=>markTaken(p,d,p.now));toast(d.med.name+' taken','Undo',()=>un
 takeBlock:(a)=>{let keys=[];setS(p=>{let q=p;dosesFor(p,todayKey).filter(d=>d.anchor===a).forEach(d=>{const st=statusOf(p,todayKey,d);if(st==='taken'||st==='skipped')return;keys.push(d.key);q=markTaken(q,d,p.now);});return q;});setTimeout(()=>toast(ALABEL[a]+' taken','Undo',()=>undoKeys(keys)),0);},
 takeAt:(d,k,at)=>{setS(p=>{const was=p.doses[d.key];let q=markTaken(p,d,at);if(was&&was.status==='taken')q={...q,meds:p.meds};return q;});toast('Saved at '+fmt(at));},
 skip:(d,k,reason)=>{setS(p=>({...p,doses:{...p.doses,[d.key]:{status:'skipped',reason}}}));toast(d.med.name+' skipped');},
+// Block-level skip, for the Skip action on a dose reminder. Mirrors takeBlock: it leaves
+// anything already settled alone and offers the same Undo.
+skipBlock:(a)=>{let keys=[];setS(p=>{let q=p;dosesFor(p,todayKey).filter(d=>d.anchor===a).forEach(d=>{const st=statusOf(p,todayKey,d);if(st==='taken'||st==='skipped')return;keys.push(d.key);q={...q,doses:{...q.doses,[d.key]:{status:'skipped'}}};});return q;});setTimeout(()=>toast(ALABEL[a]+' skipped','Undo',()=>undoKeys(keys)),0);},
 undo:(key)=>{undoKeys([key]);toast('Marked as not taken');},
 snooze:(a)=>{setS(p=>{const cur=p.snoozes[todayKey+'|'+a]||{count:0};if(cur.count>=3){return p;}return {...p,snoozes:{...p.snoozes,[todayKey+'|'+a]:{count:cur.count+1,until:p.now+p.settings.snooze}}};});
 const cur=s.snoozes[todayKey+'|'+a]||{count:0};if(cur.count>=3)toast('No more snoozes for '+ALABEL[a].toLowerCase()+' today');else toast('Snoozed '+s.settings.snooze+' min · '+(3-cur.count-1)+' left');},
@@ -702,6 +709,7 @@ useEffect(()=>{ // native setup, permissions, listeners
         c.tab('today');c.setUi({sel:todayKey,tab:'up'});
         if(x.anchor&&ev.actionId==='take')c.act.takeBlock(x.anchor);
         if(x.anchor&&ev.actionId==='snooze')c.act.snooze(x.anchor);
+        if(x.anchor&&ev.actionId==='skip')c.act.skipBlock(x.anchor);
       }));
     }
   })();
@@ -716,12 +724,11 @@ useEffect(()=>{ // system bar icons + background follow the theme
 },[theme]);
 return html`<${Ctx.Provider} value=${ctx}><div class="phone" data-theme=${theme}>
 <div class="body">${screen}</div>
-${showNav&&html`<div class=${"navwrap"+(addMenu?" is-raised":"")}><${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>setAddMenu(v=>!v)} items=${[{key:'today',icon:'home',text:String(TODAY.getDate()).padStart(2,'0'),label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'records',icon:'pulse',label:'Records'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div>`}
-${showNav&&addMenu&&html`<div key="scrim" class="addscrim" onClick=${()=>setAddMenu(false)}></div>
-<div key="menu" class="addmenu" role="menu" aria-label="Add">
+${showNav&&addMenu&&html`<div class="addscrim" onClick=${()=>setAddMenu(false)}></div>`}
+${showNav&&html`<div class=${"navwrap"+(addMenu?" is-raised":"")}><div class="navstack">${addMenu&&html`<div class="addmenu" role="menu" aria-label="Add">
 <button type="button" role="menuitem" onClick=${()=>{setAddMenu(false);go('add');}}><${Icon} name="pill"/><span>Add a medication</span></button>
 <button type="button" role="menuitem" onClick=${()=>{setAddMenu(false);const cs=s.conditions||[];cs.length?go('logep',{condId:cs[0].id}):sheet('addcond');}}><${Icon} name="pulse"/><span>Add a record</span></button>
-</div>`}
+</div>`}<${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>setAddMenu(v=>!v)} items=${[{key:'today',icon:'home',text:String(TODAY.getDate()).padStart(2,'0'),label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'records',icon:'pulse',label:'Records'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div></div>`}
 ${toastS&&html`<div class="toastwrap"><${Toast} message=${toastS.msg} action=${toastS.action} onAction=${()=>{toastS.onAction&&toastS.onAction();setToastS(null);}}/></div>`}
 ${sh}
 </div><//>`;}
@@ -743,7 +750,9 @@ async function setupNative(){
       await LN.createChannel({id,name:'Dose reminders'+(sound?'':' (silent)')+(vibrate?'':' (no vibration)'),description:'Reminders to take your medication',importance:sound?5:(vibrate?4:2),visibility:0,vibration:vibrate,lights:true,...(sound?{sound:'chime.wav'}:{})});
     }
     await LN.createChannel({id:'stock',name:'Low stock',description:'Heads-up before pills run out',importance:3,visibility:0,vibration:false});
-    await LN.registerActionTypes({types:[{id:'DOSE',actions:[{id:'take',title:'Take all'},{id:'snooze',title:'Snooze'}]},{id:'PLAIN',actions:[]}]});
+    // Android draws these three itself, in its own style; all we choose is the labels and the
+    // order. They must stay in step with the in-app card's buttons.
+    await LN.registerActionTypes({types:[{id:'DOSE',actions:[{id:'take',title:'Take now'},{id:'snooze',title:'Snooze'},{id:'skip',title:'Skip'}]},{id:'PLAIN',actions:[]}]});
   }catch(e){}
 }
 async function nativePerms(){
@@ -772,7 +781,7 @@ async function syncNotifications(s,setS){
         const t=eff(s,k,a.key),when=at(k,t);
         const names=pendingDoses.map(d=>d.med.name).join(', ');
         if(when>now)out.push({id:nid(k,a.key,1),title:'Time for '+NT[a.key],body:st.showNames?names:g.length+' medication'+(g.length>1?'s':'')+' · '+fmt(t),channelId:ch,smallIcon:'ic_stat_better',actionTypeId:'DOSE',schedule:{at:when,allowWhileIdle:true},extra:{anchor:a.key,kind:'dose'}});
-        if(st.followup){const fw=at(k,t+30);if(fw>now)out.push({id:nid(k,a.key,2),title:st.showNames?'Still need to take '+pendingDoses[0].med.name+'?':'Still need to take '+(a.key==='wake'||a.key==='bedtime'?NT[a.key]:'your '+NT[a.key]+' meds')+'?',body:'Tap to open Today',channelId:ch,smallIcon:'ic_stat_better',actionTypeId:'DOSE',schedule:{at:fw,allowWhileIdle:true},extra:{anchor:a.key,kind:'followup'}});}
+        if(st.followup){const fw=at(k,t+30);if(fw>now)out.push({id:nid(k,a.key,2),title:st.showNames?'Still need to take '+pendingDoses[0].med.name+'?':'Still need to take '+(a.key==='wake'||a.key==='bedtime'?NT[a.key]:'your '+NT[a.key]+' meds')+'?',body:'Due at '+fmt(t),channelId:ch,smallIcon:'ic_stat_better',actionTypeId:'DOSE',schedule:{at:fw,allowWhileIdle:true},extra:{anchor:a.key,kind:'followup'}});}
         const sn=s.snoozes[k+'|'+a.key];if(k===todayKey&&sn&&sn.until>nowMin){const sw=at(k,sn.until);out.push({id:nid(k,a.key,3),title:'Time for '+NT[a.key],body:st.showNames?names:g.length+' medication'+(g.length>1?'s':''),channelId:ch,smallIcon:'ic_stat_better',actionTypeId:'DOSE',schedule:{at:sw,allowWhileIdle:true},extra:{anchor:a.key,kind:'dose'}});}
       });
     }
