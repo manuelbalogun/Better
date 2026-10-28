@@ -292,8 +292,8 @@ return html`<div class="screen"><${TopBar} variant="root" title="History"/><${Pa
 ${!hasData||tot.total===0?html`<${EmptyState} icon="chart" title="Your routine will show here" body="After your first full day you will see how often you took each dose."/>`:html`<div class="b-stack" style=${{gap:16}}>
 <${Tabs} value=${range} onChange=${(v)=>c.setUi({hr:v,hsel:null})} items=${[{key:'week',label:'Week'},{key:'month',label:'Month'},{key:'3m',label:'3 mo'},{key:'6m',label:'6 mo'}]}/>
 <${GlassCard}><div class="stat"><b>${tot.total?Math.round(tot.taken/tot.total*100):0}%</b><span>${tot.taken} of ${tot.total} doses taken</span></div>
-<div style=${{marginTop:16}}><${BarChart} data=${bars} height=${140} onSelect=${(i)=>c.setUi({hsel:sel===i?null:i})} label=${range==='week'?'Doses taken per day':range==='month'?'Doses taken per week':'Doses taken per month'}/></div>
-${range!=='week'&&html`<div class="note" style=${{marginTop:12}}>Each bar is ${range==='month'?'one week':'one month'}. Tap a bar for its numbers.</div>`}<//>
+<div style=${{marginTop:24}}><${BarChart} data=${bars} height=${140} onSelect=${(i)=>c.setUi({hsel:sel===i?null:i})} label=${range==='week'?'Doses taken per day':range==='month'?'Doses taken per week':'Doses taken per month'}/></div>
+${range!=='week'&&html`<div class="note chartnote">Tap a bar for its numbers.</div>`}<//>
 ${picked&&range!=='week'&&html`<${GlassCard}><b>${picked.label}</b><div class="note">${picked.r.total?picked.r.taken+' of '+picked.r.total+' doses taken':'No data for this period yet.'}</div><//>`}
 ${picked&&range==='week'&&html`<div class="b-stack"><${Label}>${longDate(picked.k)}<//>${pickedDoses.length?pickedDoses.map(d=>html`<${Row} key=${d.key} d=${d} k=${picked.k}/>`):html`<${GlassCard}><div class="note">Nothing was scheduled this day.</div><//>`}</div>`}
 <div class="b-stack"><${Label}>By medication<//><${GlassCard} pad=${0}>${meds.map(x=>html`<div key=${x.m.id} class="adh"><div class="adh__t"><b>${x.m.name} ${x.m.strength}</b><span>${x.r.taken} of ${x.r.total}</span></div><div class="adh__bar"><i style=${{width:Math.round(x.r.taken/x.r.total*100)+'%'}}></i></div><b class="adh__p">${Math.round(x.r.taken/x.r.total*100)}%</b></div>`)}<//></div></div>`}
@@ -420,7 +420,7 @@ function RecordsTab() {
 <div class="b-stack" style=${{ marginTop: 24 }}><${Button} full size="lg" onClick=${() => c.sheet('addcond')}>Add a condition<//></div>
 <//></div>`;
   }
-  return html`<div class="screen"><${TopBar} variant="root" title="Records" actions=${[{ icon: 'plus', label: 'Add a condition', onClick: () => c.sheet('addcond') }]}/><${Page}>
+  return html`<div class="screen"><${TopBar} variant="root" title="Records"/><${Page}>
 <div class="note" style=${{ margin: '0 0 12px' }}>A record to show your doctor. Better does not give medical advice.</div>
 <div class="b-stack daystack">
 <div class="b-stack">${conds.map(cd => {
@@ -429,7 +429,10 @@ function RecordsTab() {
   sub=${last ? 'Last episode ' + agoText(last.k) : 'No episodes logged yet'}
   onClick=${() => c.go('cond', { id: cd.id })}/><//>`;
   })}</div>
+<div class="b-stack">
 <${Button} full size="lg" onClick=${() => c.go('logep', { condId: conds[0].id })}>Log an episode<//>
+<${Button} full variant="secondary" onClick=${() => c.sheet('addcond')}>Add a condition<//>
+</div>
 </div><//></div>`;
 }
 
@@ -596,6 +599,7 @@ useEffect(()=>{saveState(s);},[s]);
 const [nav,setNav]=useState({tab:'today',stack:[],ob:'A1'});
 const [ui,setUiS]=useState({sel:todayKey,tab:'up',wk:0,hr:'week',hsel:null});
 const setUi=(p)=>setUiS(x=>({...x,...p}));
+const [addMenu,setAddMenu]=useState(false);
 const [sheetS,setSheet]=useState(null);const [toastS,setToastS]=useState(null);const [draft,setDraftS]=useState(blankDraft);const [notif,setNotif]=useState(null);const [drawer,setDrawer]=useState(false);
 const setDraft=(p)=>setDraftS(x=>({...x,...p}));
 const tref=useRef();
@@ -712,7 +716,12 @@ useEffect(()=>{ // system bar icons + background follow the theme
 },[theme]);
 return html`<${Ctx.Provider} value=${ctx}><div class="phone" data-theme=${theme}>
 <div class="body">${screen}</div>
-${showNav&&html`<div class="navwrap"><${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>go('add')} items=${[{key:'today',icon:'home',text:String(TODAY.getDate()).padStart(2,'0'),label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'records',icon:'pulse',label:'Records'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div>`}
+${showNav&&html`<div class=${"navwrap"+(addMenu?" is-raised":"")}><${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>setAddMenu(v=>!v)} items=${[{key:'today',icon:'home',text:String(TODAY.getDate()).padStart(2,'0'),label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'records',icon:'pulse',label:'Records'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div>`}
+${showNav&&addMenu&&html`<div key="scrim" class="addscrim" onClick=${()=>setAddMenu(false)}></div>
+<div key="menu" class="addmenu" role="menu" aria-label="Add">
+<button type="button" role="menuitem" onClick=${()=>{setAddMenu(false);go('add');}}><${Icon} name="pill"/><span>Add a medication</span></button>
+<button type="button" role="menuitem" onClick=${()=>{setAddMenu(false);const cs=s.conditions||[];cs.length?go('logep',{condId:cs[0].id}):sheet('addcond');}}><${Icon} name="pulse"/><span>Add a record</span></button>
+</div>`}
 ${toastS&&html`<div class="toastwrap"><${Toast} message=${toastS.msg} action=${toastS.action} onAction=${()=>{toastS.onAction&&toastS.onAction();setToastS(null);}}/></div>`}
 ${sh}
 </div><//>`;}
