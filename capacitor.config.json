@@ -5,6 +5,6 @@
   "android": { "allowMixedContent": false },
   "plugins": {
     "SystemBars": { "insetsHandling": "css" },
-    "LocalNotifications": { "smallIcon": "ic_stat_better", "iconColor": "#111111" }
+    "LocalNotifications": { "smallIcon": "ic_stat_better", "iconColor": "#4F7CFF" }
   }
 }

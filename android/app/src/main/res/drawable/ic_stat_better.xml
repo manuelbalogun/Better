@@ -1,19 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The Better mark: the dose circle two thirds filled, the same shape as the launcher icon
+     and the splash. Android uses only the alpha channel of a notification small icon and
+     tints it itself, so the colours here are placeholders and the mark has to read as a
+     silhouette: the taken two thirds are solid, the remaining third is a ring of the same
+     outer radius so the whole circle still closes. Keep the art inside 22dp of the 24dp box
+     or the system crops it. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Taken: a 240 degree wedge from 12 o'clock, clockwise. -->
     <path
-        android:pathData="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"
+        android:pathData="M12 12 L12 3 A9 9 0 1 1 4.21 16.5 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- The remaining third, drawn at radius 8 with a 2dp stroke so its outer edge lands on 9. -->
+    <path
+        android:pathData="M5.07 16 A8 8 0 0 1 12 4"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-    <path
-        android:pathData="m8.5 8.5 7 7"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+        android:strokeLineCap="butt" />
 </vector>

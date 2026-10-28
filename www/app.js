@@ -663,6 +663,25 @@ testNotif:async()=>{if(!s.perms.notif){toast('Notifications are off. Turn them o
 };
 const ctx={s,setS,nav,ui,setUi,sheet,closeSheet,go,back,tab,toast,draft,setDraft,exitAdd,setOb,act,setNotif};
 
+// A dose falling due while Better is open shows the card in the app rather than relying on
+// the system notification, which the user may never pull down. It fires once per block, and
+// once more per snooze, so snoozing brings it back and taking or skipping settles it.
+// Off in the prototype, where the clock is simulated and jumping between scenarios would pop
+// the card onto unrelated screens. mkprod.py turns it on for the real clock; the G jumps are
+// how the prototype shows the card.
+const AUTO_CARD=true;
+const firedRef=useRef('');
+useEffect(()=>{
+  if(!AUTO_CARD||!s.onboarded||notif)return;
+  if(nav.stack.some(x=>x.id==='add'))return; // never interrupt the add form
+  const nb=nextBlock(s);if(!nb||!nb.started)return;
+  if(nb.snoozeUntil&&s.now<nb.snoozeUntil)return;
+  if(s.now>nb.time+120)return;               // too old to be news; Today already shows it
+  const key=todayKey+'|'+nb.anchor+'|'+(nb.snoozeCount||0);
+  if(firedRef.current===key)return;
+  firedRef.current=key;setNotif({kind:'dose'});
+},[s.now,s.onboarded,notif,nav.stack.length]);
+
 // theme
 const [sysDark,setSysDark]=useState(false);
 useEffect(()=>{const mq=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)');const f=()=>{const t=document.documentElement.getAttribute('data-theme');setSysDark(t==='dark'||(t!=='light'&&!!(mq&&mq.matches)));};f();if(mq&&mq.addEventListener)mq.addEventListener('change',f);const ob=new MutationObserver(f);ob.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});return ()=>{ob.disconnect();if(mq&&mq.removeEventListener)mq.removeEventListener('change',f);};},[]);
@@ -730,6 +749,7 @@ ${showNav&&html`<div class=${"navwrap"+(addMenu?" is-raised":"")}><div class="na
 <button type="button" role="menuitem" onClick=${()=>{setAddMenu(false);const cs=s.conditions||[];cs.length?go('logep',{condId:cs[0].id}):sheet('addcond');}}><${Icon} name="pulse"/><span>Add a record</span></button>
 </div>`}<${NavPill} value=${nav.tab} onChange=${(t)=>{if(t==='today')setUi({sel:todayKey});tab(t);}} onAdd=${()=>setAddMenu(v=>!v)} items=${[{key:'today',icon:'home',text:String(TODAY.getDate()).padStart(2,'0'),label:'Today'},{key:'meds',icon:'pill',label:'Meds'},{key:'records',icon:'pulse',label:'Records'},{key:'history',icon:'chart',label:'History'},{key:'settings',icon:'gear',label:'Settings'}]}/></div></div>`}
 ${toastS&&html`<div class="toastwrap"><${Toast} message=${toastS.msg} action=${toastS.action} onAction=${()=>{toastS.onAction&&toastS.onAction();setToastS(null);}}/></div>`}
+${notif&&html`<${NotifCard} n=${notif}/>`}
 ${sh}
 </div><//>`;}
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
